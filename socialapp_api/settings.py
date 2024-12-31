@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -31,13 +33,16 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'socialapp.apps.SocialappConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'socialapp.apps.SocialappConfig'
+    'ckeditor',
+    'cloudinary',
+
 ]
 
 MIDDLEWARE = [
@@ -79,12 +84,15 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'socialapp',
         'USER': 'root',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '3303',
+        'PASSWORD': 'Admin@123',
+        'HOST': 'localhost',
     }
 }
 
+import pymysql
+pymysql.install_as_MySQLdb()
+
+AUTH_USER_MODEL = 'socialapp.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
