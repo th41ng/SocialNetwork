@@ -30,6 +30,14 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 2,
+    'DEFAULT_AUTHENTICATION_CLASSES':(
+    'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -42,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ckeditor',
     'cloudinary',
+    'oauth2_provider'
 
 ]
 
@@ -84,8 +93,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'socialapp',
         'USER': 'root',
-        'PASSWORD': 'Admin@123',
+        'PASSWORD': '',
         'HOST': 'localhost',
+        'PORT':'3303'
     }
 }
 
