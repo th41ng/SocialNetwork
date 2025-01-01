@@ -15,7 +15,8 @@ class Role(models.Model):
 class User(AbstractUser):
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True)
     student_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    avatar = CloudinaryField('avatar', null=True, blank=True)
+    # avatar = CloudinaryField('avatar', null=True, blank=True) nếu dùng cloundinary thì bỏ thằng ở dưới.
+    avatar = models.ImageField(upload_to='user/%Y/%m/') #đang dùng media_root để chứa hình
     cover_image = CloudinaryField('cover_image', null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)

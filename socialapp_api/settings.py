@@ -93,6 +93,7 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'socialapp.User'
+MEDIA_ROOT = '%s/socialapp/static/' % BASE_DIR
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
