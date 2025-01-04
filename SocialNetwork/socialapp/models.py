@@ -17,14 +17,23 @@ class User(AbstractUser):
     avatar = CloudinaryField('avatar', null=True, blank=True)
     cover_image = CloudinaryField('cover_image', null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True)
-    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
+    # last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     password_reset_deadline = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    email_verified = models.BooleanField(default=False)  # Email verification status
-    phone_verified = models.BooleanField(default=False)  # Phone number verification status
+    # email_verified = models.BooleanField(default=False)
+    # phone_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
+
+    # def is_admin(self):
+    #     return self.role and self.role.name == "Admin"
+    #
+    # def is_lecturer(self):
+    #     return self.role and self.role.name == "Lecturer"
+    #
+    # def is_alumni(self):
+    #     return self.role and self.role.name == "Alumni"
 
 
 class BaseModel(models.Model):
@@ -127,8 +136,6 @@ class Notification(BaseModel):
 
 
 
-
-
 class GroupMember(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -137,33 +144,6 @@ class GroupMember(BaseModel):
     def __str__(self):
         return f"{self.user.username} is a member of {self.group.name}"
 
-
-class Chat(BaseModel):
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_group_chat = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Chat created by {self.created_by.username}"
-
-
-class ChatParticipant(BaseModel):
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='participants')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return f"{self.user.username} is participating in {self.chat.id}"
-
-
-class Message(BaseModel):
-    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    content = RichTextField()
-    is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Message from {self.sender.username} in {self.chat.id}"
 
 
 class Statistic(BaseModel):

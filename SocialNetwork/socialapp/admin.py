@@ -1,40 +1,40 @@
+# admin.py
 from datetime import timedelta
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from .models import Role, PostCategory, Post, Comment, Reaction, Survey, SurveyResponse, Group, GroupMember, \
-    Notification, Chat, ChatParticipant, Message, Statistic
+    Notification, Statistic
 from django.utils.html import format_html
 
-# Register custom User model
+# Get custom User model
 User = get_user_model()
 
-
-# Role Admin
+# Register Role model
 class RoleAdmin(admin.ModelAdmin):
     list_display = ['name']
     search_fields = ['name']
 
-
 admin.site.register(Role, RoleAdmin)
-
 
 # User Admin (Cựu sinh viên, giảng viên, quản trị viên)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'email_verified',
-                    'phone_verified', 'last_login']
-    list_filter = ['role', 'is_active', 'email_verified', 'phone_verified']
+    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'last_login']
+    list_filter = ['role', 'is_active']
     search_fields = ['username', 'first_name', 'last_name', 'student_id', 'email']
-    readonly_fields = ['last_login', 'password_reset_deadline', 'last_login_ip']
+    readonly_fields = ['last_login', 'password_reset_deadline']
 
     def save_model(self, request, obj, form, change):
-        # If user is a teacher and it's a new record, set default password and mark for password change
+        """
+        Phương thức này thực thi khi lưu đối tượng người dùng.
+        Nếu là giảng viên và đang tạo mới, tự động đặt mật khẩu mặc định.
+        """
         if obj.role and obj.role.name == 'Giảng viên' and not change:
-            obj.set_password('ou@123')
-            obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Set deadline to 24 hours
+            obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
+            obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
         super().save_model(request, obj, form, change)
 
-
 admin.site.register(User, UserAdmin)
+
 
 
 # PostCategory Admin
@@ -154,32 +154,3 @@ class StatisticAdmin(admin.ModelAdmin):
 admin.site.register(Statistic, StatisticAdmin)
 
 
-# Chat Admin
-class ChatAdmin(admin.ModelAdmin):
-    list_display = ['created_by', 'is_group_chat', 'created_date']
-    list_filter = ['is_group_chat']
-    search_fields = ['created_by__username']
-
-
-admin.site.register(Chat, ChatAdmin)
-
-
-# ChatParticipant Admin
-class ChatParticipantAdmin(admin.ModelAdmin):
-    list_display = ['chat', 'user', 'is_active', 'created_date']
-    list_filter = ['is_active']
-    search_fields = ['chat__id', 'user__username']
-
-
-admin.site.register(ChatParticipant, ChatParticipantAdmin)
-
-
-# Message Admin
-class MessageAdmin(admin.ModelAdmin):
-    list_display = ['chat', 'sender', 'content', 'created_date', 'is_deleted']
-    list_filter = ['is_deleted']
-    search_fields = ['content', 'sender__username']
-
-
-# Register your models here.
-admin.site.register(Message, MessageAdmin)
