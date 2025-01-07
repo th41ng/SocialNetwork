@@ -31,6 +31,10 @@ class UserAdmin(admin.ModelAdmin):
         if obj.role and obj.role.name == 'Giảng viên' and not change:
             obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
             obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
+            # Nếu không phải giảng viên hoặc đang thay đổi
+        if not change or not obj.check_password(obj.password):
+            obj.set_password(obj.password)  # Mã hóa mật khẩu nếu chưa mã hóa
+
         super().save_model(request, obj, form, change)
 
 admin.site.register(User, UserAdmin)
