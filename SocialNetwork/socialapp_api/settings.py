@@ -50,8 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ckeditor',
     'cloudinary',
-    'oauth2_provider'
-
+    'oauth2_provider',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
