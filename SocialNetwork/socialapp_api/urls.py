@@ -1,10 +1,8 @@
-
 from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('',include('socialapp.urls')),
     path('admin/', admin.site.urls),
-    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),  # URL cho OAuth2
+    path('', include('socialapp.urls')),  # Đảm bảo rằng các URL trong 'socialapp.urls' được bao gồm
 ]
