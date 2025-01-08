@@ -9,7 +9,7 @@ router = DefaultRouter()
 
 
 router.register('users', views.UserViewSet, basename='user')  # Đăng ký UserViewSet
-router.register('profile', views.UserViewSet, basename='profile')  # Đăng ký profile
+router.register('profile', views.ProfileViewset, basename='profile')  # Đăng ký profile
 router.register('posts', views.PostViewSet, basename='post')  # Đăng ký PostViewSet
 
 

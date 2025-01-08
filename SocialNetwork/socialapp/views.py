@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from .models import User, Post
-from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer
+from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer, \
+    ProfileWithPostsSerializer
 from django.utils import timezone
 from datetime import timedelta
 
@@ -26,13 +27,6 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         if self.action in ['get_current_user']:
             return [permissions.IsAuthenticated()]  # Chỉ cho phép người dùng đã đăng nhập
         return [permissions.AllowAny()]  # Các hành động khác đều được phép truy cập
-
-    @action(methods=['get'], url_path='current-user', detail=False)
-    def get_current_user(self, request):
-        """
-        Trả về thông tin người dùng hiện tại.
-        """
-        return Response(UserRegistrationSerializer(request.user).data)
 
     @action(methods=['post'], url_path='update-password', detail=False)
     def update_password(self, request):
@@ -67,18 +61,31 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         return Response({"error": "Tài khoản này chưa bị khoá hoặc không cần reset."}, status=400)
 
 
-
-class ProfileViewset(viewsets.ModelViewSet,generics.RetrieveAPIView):
+class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
     """
-       API để lấy danh sách bài viết theo dòng thời gian của người dùng.
-       """
+    API để lấy thông tin người dùng hiện tại và danh sách bài viết của họ.
+    """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        # Lấy danh sách bài viết của người dùng hiện tại, sắp xếp theo thời gian
-        user_posts = Post.objects.filter(user=request.user).order_by('-created_date')
-        serializer = PostSerializer(user_posts, many=True)
+    def list(self, request, *args, **kwargs):
+        """
+        Trả về thông tin người dùng hiện tại và danh sách bài viết của họ.
+        """
+        # Thông tin người dùng hiện tại
+        user = request.user
+
+        # Danh sách bài viết của người dùng
+        posts = Post.objects.filter(user=user).order_by('-created_date')
+
+        # Kết hợp thông tin người dùng và bài viết
+        serializer = ProfileWithPostsSerializer({
+            "user": user,
+            "posts": posts,
+        }, context={'request': request})
+
         return Response(serializer.data)
+
+
 
 
 

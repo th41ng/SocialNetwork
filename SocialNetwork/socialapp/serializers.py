@@ -6,7 +6,7 @@ from cloudinary.models import CloudinaryField
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'avatar']
+        fields = ['id', 'username', 'avatar','cover_image', 'phone_number', 'email' ]
 
 class PostCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -100,3 +100,12 @@ class UpdatePasswordSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
+
+#Gôm 2 cái thông tin user và bài viết để dành cho profile
+class ProfileWithPostsSerializer(serializers.Serializer):
+    """
+    Serializer để trả về thông tin người dùng hiện tại và danh sách bài viết của họ.
+    """
+    user = UserSerializer()
+    posts = PostSerializer(many=True)
