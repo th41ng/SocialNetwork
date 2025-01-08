@@ -1,20 +1,17 @@
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Khởi tạo DefaultRouter
-router = DefaultRouter()
-
-# Đăng ký UserViewSet vào router
-router.register('users', views.UserViewSet, basename='user') #Đăng kí
-router.register('profile',views.UserViewSet,basename='profile') #Trang cá nhân
-
-# Đưa các URL của router vào urlpatterns
 
 router = DefaultRouter()
-router.register('post', views.PostViewSet)
+
+
+router.register('users', views.UserViewSet, basename='user')  # Đăng ký UserViewSet
+router.register('profile', views.UserViewSet, basename='profile')  # Đăng ký profile
+router.register('posts', views.PostViewSet, basename='post')  # Đăng ký PostViewSet
+
 
 urlpatterns = [
     path('', include(router.urls)),
 ]
+
