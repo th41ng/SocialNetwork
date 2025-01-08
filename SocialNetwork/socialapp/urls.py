@@ -8,11 +8,7 @@ router = DefaultRouter()
 
 # Đăng ký UserViewSet vào router
 router.register('users', views.UserViewSet, basename='user') #Đăng kí
-router.register('profile',views.UserViewSet,basename='profile') #Trang cá nhân
-
-# Đưa các URL của router vào urlpatterns
-
-router = DefaultRouter()
+router.register('profile',views.ProfileViewset,basename='profile') #Trang cá nhân
 router.register('post', views.PostViewSet)
 
 urlpatterns = [

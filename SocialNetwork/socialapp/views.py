@@ -2,7 +2,7 @@
 from django.db.models.fields import return_None
 from rest_framework import viewsets, permissions, generics
 from rest_framework.generics import RetrieveAPIView
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import User, Post
@@ -59,6 +59,19 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
             }, status=200)
 
         return Response({"error": "Tài khoản này chưa bị khoá hoặc không cần reset."}, status=400)
+
+
+class ProfileViewset(viewsets.ModelViewSet,generics.RetrieveAPIView):
+    """
+       API để lấy danh sách bài viết theo dòng thời gian của người dùng.
+       """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Lấy danh sách bài viết của người dùng hiện tại, sắp xếp theo thời gian
+        user_posts = Post.objects.filter(user=request.user).order_by('-created_date')
+        serializer = PostSerializer(user_posts, many=True)
+        return Response(serializer.data)
 
 
 class IsAuthenticatedOrReadOnly(BasePermission):
