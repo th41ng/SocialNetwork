@@ -1,26 +1,31 @@
-
-from django.db.models.fields import return_None
 from rest_framework import viewsets, permissions, generics
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from .models import User, Post
 from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer
 from django.utils import timezone
 from datetime import timedelta
-from django.http import Http404
+
 
 
 class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+    """
+    Xử lý API cho User.
+    """
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
+        """
+        Cung cấp quyền truy cập cho các phương thức khác nhau.
+        """
         if self.action in ['get_current_user']:
-            return [permissions.IsAuthenticated()]
-        return [permissions.AllowAny()]
+            return [permissions.IsAuthenticated()]  # Chỉ cho phép người dùng đã đăng nhập
+        return [permissions.AllowAny()]  # Các hành động khác đều được phép truy cập
 
     @action(methods=['get'], url_path='current-user', detail=False)
     def get_current_user(self, request):
@@ -32,7 +37,7 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
     @action(methods=['post'], url_path='update-password', detail=False)
     def update_password(self, request):
         """
-        Giúp giảng viên đổi mật khẩu khi nhận tài khoản với mật khẩu mặc định.
+        Đổi mật khẩu cho người dùng hiện tại.
         """
         serializer = UpdatePasswordSerializer(data=request.data, context={'request': request})
 
@@ -44,21 +49,23 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
     @action(methods=['post'], url_path='reset-password-deadline', detail=True)
     def reset_password_deadline(self, request, pk=None):
         """
-        Action dành cho quản trị viên để reset thời gian thay đổi mật khẩu và mở lại tài khoản người dùng bị khoá.
+        Reset thời gian đổi mật khẩu và mở lại tài khoản bị khóa (dành cho Admin).
         """
-        user = User.objects.get(pk=self.kwargs['pk'])
+        try:
+            user = User.objects.get(pk=self.kwargs['pk'])  # Tìm người dùng theo ID
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=404)
 
-        # Kiểm tra nếu người dùng đã bị khoá
         if not user.is_active:
-            user.is_active = True  # Mở lại tài khoản
-            user.password_reset_deadline = timezone.now() + timedelta(
-                days=1)  # Thiết lập lại thời gian thay đổi mật khẩu
+            user.is_active = True
+            user.password_reset_deadline = timezone.now() + timedelta(days=1)  # Reset deadline
             user.save()
             return Response({
                 "message": f"Đã reset thời gian đổi mật khẩu cho người dùng {user.username}. Tài khoản đã được mở lại."
             }, status=200)
 
         return Response({"error": "Tài khoản này chưa bị khoá hoặc không cần reset."}, status=400)
+
 
 
 class ProfileViewset(viewsets.ModelViewSet,generics.RetrieveAPIView):
@@ -74,22 +81,47 @@ class ProfileViewset(viewsets.ModelViewSet,generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+
 class IsAuthenticatedOrReadOnly(BasePermission):
     """
-    Cho phép tất cả truy cập với phương thức GET,
-    nhưng yêu cầu đăng nhập với các phương thức khác (POST, PUT, DELETE).
+    Quyền truy cập:
+    - Cho phép tất cả xem (GET, HEAD, OPTIONS).
+    - Yêu cầu đăng nhập với các hành động khác (POST, PUT, DELETE).
     """
     def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:  # SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
+        if request.method in SAFE_METHODS:
             return True
         return request.user and request.user.is_authenticated
 
+
+
 class PostViewSet(viewsets.ModelViewSet):
+    """
+    Xử lý API cho Post.
+    """
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]  # Kiểm tra quyền truy cập cho bài viết
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        """
+        Gắn người dùng hiện tại vào bài viết khi tạo mới.
+        """
+        serializer.save(user=self.request.user)  # Tự động gán người dùng hiện tại là tác giả của bài viết
 
+    def perform_update(self, serializer):
+        """
+        Kiểm tra quyền sở hữu trước khi chỉnh sửa bài viết.
+        """
+        post = self.get_object()
+        if post.user != self.request.user:  # Kiểm tra xem người dùng hiện tại có phải là tác giả không
+            raise PermissionDenied("Bạn không có quyền chỉnh sửa bài viết này.")
+        serializer.save()
 
+    def perform_destroy(self, instance):
+        """
+        Kiểm tra quyền sở hữu trước khi xóa bài viết.
+        """
+        if instance.user != self.request.user:  # Kiểm tra quyền xóa bài viết
+            raise PermissionDenied("Bạn không có quyền xóa bài viết này.")
+        instance.delete()  # Xóa bài viết

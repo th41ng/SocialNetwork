@@ -59,7 +59,7 @@ ROOT_URLCONF = 'socialapp_api.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'socialapp' / 'templates'],  # Đảm bảo Django tìm thấy thư mục templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,6 +72,8 @@ TEMPLATES = [
     },
 ]
 
+
+
 WSGI_APPLICATION = 'socialapp_api.wsgi.application'
 
 
@@ -83,9 +85,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'socialapp',
         'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT':'3303'
+        'PASSWORD': 'Admin@123',
+        'HOST': 'localhost'
     }
 }
 
