@@ -123,14 +123,17 @@ class Group(BaseModel):
         return self.name
 
 
-
-
 class Notification(BaseModel):
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='created_notifications'
+    )
     title = models.CharField(max_length=255)
     content = models.TextField()
     recipient_group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
-
+    recipient_user = models.ForeignKey(
+        'User', on_delete=models.SET_NULL, null=True, blank=True, related_name='received_notifications'
+    )
+    event = models.ForeignKey('Event', on_delete=models.SET_NULL, null=True, blank=True)  # Thêm liên kết đến Event
 
     def __str__(self):
         return self.title
@@ -144,6 +147,18 @@ class GroupMember(BaseModel):
 
     def __str__(self):
         return f"{self.user.username} is a member of {self.group.name}"
+
+
+class Event(BaseModel):
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = RichTextField()
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    attendees = models.ManyToManyField(User, related_name='events_attending', blank=True)
+
+    def __str__(self):
+        return self.title
 
 
 

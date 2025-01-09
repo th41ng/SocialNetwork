@@ -1,6 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Post, User, PostCategory, Comment, Reaction
+from .models import Post, User, PostCategory, Comment, Reaction, Group, Notification, Event, GroupMember
 from cloudinary.models import CloudinaryField
 
 class UserSerializer(serializers.ModelSerializer):
@@ -73,7 +73,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data)
         return user
 
-
 class UpdatePasswordSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -109,3 +108,48 @@ class ProfileWithPostsSerializer(serializers.Serializer):
     """
     user = UserSerializer()
     posts = PostSerializer(many=True)
+
+
+#tạo nhóm chỉ định nhóm gửi thông báo sự kiện
+class GroupSerializer(serializers.ModelSerializer):
+    members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'members']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'content', 'recipient_group', 'recipients', 'is_sent']
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ['id', 'title', 'description', 'start_time', 'end_time', 'attendees', 'created_by', 'notification']
+
+
+class GroupMemberSerializer(serializers.ModelSerializer):
+    users = serializers.ListField(
+        child=serializers.IntegerField(),  # Danh sách ID của User
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = GroupMember
+        fields = ['id', 'group', 'user', 'is_admin', 'created_date', 'users']
+
+    def create(self, validated_data):
+        users = validated_data.pop('users', [])
+        group = validated_data.get('group')
+
+        # Tạo GroupMember cho từng user
+        group_members = []
+        for user_id in users:
+            user = User.objects.get(id=user_id)
+            group_member = GroupMember.objects.create(group=group, user=user, **validated_data)
+            group_members.append(group_member)
+        return group_members

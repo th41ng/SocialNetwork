@@ -1,15 +1,17 @@
 from rest_framework import viewsets, permissions, generics
-from rest_framework.generics import RetrieveAPIView
+from rest_framework.generics import RetrieveAPIView, get_object_or_404
 from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from .models import User, Post
+
+from . import models
+from .models import User, Post, Group, Notification, GroupMember, Event
 from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer, \
-    ProfileWithPostsSerializer
+    ProfileWithPostsSerializer, GroupSerializer, NotificationSerializer, EventSerializer, GroupMemberSerializer
 from django.utils import timezone
 from datetime import timedelta
-
+from django.db.models import Q
 
 
 class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
@@ -132,3 +134,94 @@ class PostViewSet(viewsets.ModelViewSet):
         if instance.user != self.request.user:  # Kiểm tra quyền xóa bài viết
             raise PermissionDenied("Bạn không có quyền xóa bài viết này.")
         instance.delete()  # Xóa bài viết
+
+
+#Tạo nhóm chỉ định sự kiện
+class GroupViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+    """
+    API cho phép quản lý các nhóm.
+    """
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        """
+        Lưu nhóm với người tạo là user hiện tại.
+        """
+        serializer.save(created_by=self.request.user)
+
+    def get_queryset(self):
+        """
+        Trả về các nhóm mà người dùng đã tạo hoặc tham gia.
+        """
+        return Group.objects.filter(
+            Q(created_by=self.request.user) |
+            Q(members__user=self.request.user)
+        ).distinct()
+
+
+class NotificationViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+    """
+    API quản lý thông báo.
+    """
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Lưu thông báo và tự động liên kết người tạo
+        serializer.save(created_by=self.request.user)
+
+    def get_queryset(self):
+        """
+        Người dùng chỉ thấy thông báo của họ hoặc nhóm mà họ thuộc.
+        """
+        user_groups = GroupMember.objects.filter(user=self.request.user).values_list('group', flat=True)
+        return Notification.objects.filter(
+            Q(recipient_group__in=user_groups) |
+            Q(recipient_user=self.request.user) |  # Thêm điều kiện cho người nhận cá nhân
+            Q(created_by=self.request.user)
+        ).distinct()
+
+
+class EventViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+    """
+    API quản lý sự kiện.
+    """
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    def get_queryset(self):
+        return Event.objects.filter(
+            models.Q(created_by=self.request.user) |
+            models.Q(attendees=self.request.user)
+        ).distinct()
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def register(self, request, pk=None):
+        """
+        Hành động tùy chỉnh để người dùng đăng ký tham gia sự kiện.
+        """
+        event = get_object_or_404(Event, pk=pk)
+        if request.user in event.attendees.all():
+            return Response({"message": "Bạn đã đăng ký sự kiện này trước đó."}, status=400)
+
+        event.attendees.add(request.user)
+        return Response({"message": "Bạn đã đăng ký tham gia sự kiện thành công."}, status=200)
+
+
+class GroupMemberViewSet(viewsets.ModelViewSet):
+    queryset = GroupMember.objects.all()
+    serializer_class = GroupMemberSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save()
+# Kết thúc code Tạo nhóm chỉ định sự kiện
+
+

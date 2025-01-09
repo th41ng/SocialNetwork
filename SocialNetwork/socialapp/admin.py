@@ -16,12 +16,24 @@ class RoleAdmin(admin.ModelAdmin):
 
 admin.site.register(Role, RoleAdmin)
 
-# User Admin (Cựu sinh viên, giảng viên, quản trị viên)
+from datetime import timedelta
+
 class UserAdmin(admin.ModelAdmin):
     list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'last_login']
     list_filter = ['role', 'is_active']
     search_fields = ['username', 'first_name', 'last_name', 'student_id', 'email']
     readonly_fields = ['last_login', 'password_reset_deadline']
+
+    def get_form(self, request, obj=None, **kwargs):
+        """
+        Tùy chỉnh form hiển thị trên giao diện admin.
+        - Nếu tạo mới giảng viên: Ẩn trường mật khẩu.
+        - Nếu chỉnh sửa hoặc tài khoản khác: Hiển thị trường mật khẩu.
+        """
+        form = super().get_form(request, obj, **kwargs)
+        if not obj:  # Khi tạo mới
+            form.base_fields['password'].required = False  # Không bắt buộc nhập mật khẩu
+        return form
 
     def save_model(self, request, obj, form, change):
         """
@@ -31,9 +43,10 @@ class UserAdmin(admin.ModelAdmin):
         if obj.role and obj.role.name == 'Giảng viên' and not change:
             obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
             obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
-            # Nếu không phải giảng viên hoặc đang thay đổi
+
+        # Mã hóa mật khẩu nếu cần thiết
         if not change or not obj.check_password(obj.password):
-            obj.set_password(obj.password)  # Mã hóa mật khẩu nếu chưa mã hóa
+            obj.set_password(obj.password)
 
         super().save_model(request, obj, form, change)
 
@@ -119,33 +132,45 @@ class SurveyResponseAdmin(admin.ModelAdmin):
 admin.site.register(SurveyResponse, SurveyResponseAdmin)
 
 
+from django.contrib import admin
+from .models import Group, GroupMember, Notification, Event
+
 # Group Admin
+# Inline for GroupMember
+class GroupMemberInline(admin.TabularInline):  # Dùng TabularInline để hiển thị dạng bảng
+    model = GroupMember
+    extra = 1  # Số dòng trống để thêm mới
+    autocomplete_fields = ['user']  # Cho phép tìm kiếm người dùng theo tên
+
+
+# Group Admin
+@admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_by', 'created_date']
+    list_display = ['id', 'name', 'created_by', 'created_date', 'active']
     search_fields = ['name', 'created_by__username']
+    list_filter = ['active', 'created_date']
+    ordering = ['-created_date']
+    list_per_page = 20
+    inlines = [GroupMemberInline]  # Gắn GroupMemberInline để quản lý thành viên trong nhóm
 
 
-admin.site.register(Group, GroupAdmin)
-
-
-# GroupMember Admin
-class GroupMemberAdmin(admin.ModelAdmin):
-    list_display = ['group', 'user', 'is_admin', 'created_date']
-    list_filter = ['is_admin']
-    search_fields = ['group__name', 'user__username']
-
-
-admin.site.register(GroupMember, GroupMemberAdmin)
-
-
-# Notification Admin
+@admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ['title', 'created_by', 'recipient_group', 'created_date']
-    search_fields = ['title', 'content', 'created_by__username']
-    list_filter = ['recipient_group']
+    list_display = ['id', 'title', 'created_by', 'recipient_group', 'recipient_user', 'event', 'created_date']
+    search_fields = ['title', 'content', 'created_by__username', 'event__title']
+    list_filter = ['recipient_group', 'event', 'created_date']
+    ordering = ['-created_date']
+    list_per_page = 20
 
 
-admin.site.register(Notification, NotificationAdmin)
+
+@admin.register(Event)
+class EventAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'created_by', 'start_time', 'end_time', 'created_date']
+    search_fields = ['title', 'created_by__username', 'description']
+    list_filter = ['start_time', 'end_time']
+    ordering = ['-start_time']
+    list_per_page = 20
 
 
 # Statistic Admin
