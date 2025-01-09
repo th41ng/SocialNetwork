@@ -11,6 +11,8 @@ router.register('profile', views.ProfileViewset, basename='profile')
 router.register('posts', views.PostViewSet, basename='post')
 router.register('comments', views.CommentViewSet, basename='comment')
 router.register('reactions', views.ReactionViewSet, basename='reaction')
+router.register('surveys', views.SurveyViewSet, basename='survey')
+router.register('survey-responses', views.SurveyResponseViewSet, basename='survey-response')
 
 urlpatterns = [
     path('', include(router.urls)),

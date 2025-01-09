@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.db.models import Count
 from rest_framework import serializers
-from .models import Post, User, PostCategory, Comment, Reaction
+from .models import Post, User, PostCategory, Comment, Reaction, Survey, SurveyResponse
 from cloudinary.models import CloudinaryField
 
 class UserSerializer(serializers.ModelSerializer):
@@ -110,3 +110,21 @@ class ProfileWithPostsSerializer(serializers.Serializer):
     """
     user = UserSerializer()
     posts = PostSerializer(many=True)  # Các bài viết với đầy đủ thông tin về cảm xúc và bình luận
+
+# khảo sát
+class SurveySerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Survey
+        fields = ['id', 'title', 'description', 'status', 'created_by', 'created_date', 'updated_date']
+        read_only_fields = ['created_by', 'created_date', 'updated_date']
+
+class SurveyResponseSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    survey = SurveySerializer(read_only=True)
+
+    class Meta:
+        model = SurveyResponse
+        fields = ['id', 'survey', 'user', 'response_data', 'created_date']
+        read_only_fields = ['user', 'survey', 'created_date']

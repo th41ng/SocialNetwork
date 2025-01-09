@@ -5,9 +5,9 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthentic
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from .models import User, Post, Reaction, Comment
+from .models import User, Post, Reaction, Comment, Survey, SurveyResponse
 from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer, \
-    ProfileWithPostsSerializer, ReactionSerializer, CommentSerializer
+    ProfileWithPostsSerializer, ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer
 from django.utils import timezone
 from datetime import timedelta
 
@@ -300,3 +300,38 @@ class CommentViewSet(viewsets.ModelViewSet):
             "reaction_summary": {reaction['reaction_type']: reaction['count'] for reaction in summary}
         })
 
+class SurveyViewSet(viewsets.ModelViewSet):
+    """
+    Xử lý API cho Survey (Khảo sát).
+    """
+    queryset = Survey.objects.all()
+    serializer_class = SurveySerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        """
+        Gắn người tạo là quản trị viên hiện tại.
+        """
+        if not self.request.user.is_staff:  # Chỉ cho phép admin tạo khảo sát
+            raise PermissionDenied("Chỉ quản trị viên mới có quyền tạo khảo sát.")
+        serializer.save(created_by=self.request.user)
+
+class SurveyResponseViewSet(viewsets.ModelViewSet):
+    """
+    Xử lý API cho SurveyResponse (Phản hồi khảo sát).
+    """
+    queryset = SurveyResponse.objects.all()
+    serializer_class = SurveyResponseSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        """
+        Gắn user hiện tại và survey vào phản hồi khảo sát.
+        """
+        survey_id = self.request.data.get('survey')
+        try:
+            survey = Survey.objects.get(id=survey_id)
+        except Survey.DoesNotExist:
+            raise ValidationError("Khảo sát không tồn tại.")
+
+        serializer.save(user=self.request.user, survey=survey)
