@@ -110,14 +110,14 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         Gắn người dùng hiện tại vào bài viết khi tạo mới.
         """
-        serializer.save(user=self.request.user)  # Tự động gán người dùng hiện tại là tác giả của bài viết
+        serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
         """
         Kiểm tra quyền sở hữu trước khi chỉnh sửa bài viết.
         """
         post = self.get_object()
-        if post.user != self.request.user:  # Kiểm tra xem người dùng hiện tại có phải là tác giả không
+        if post.user != self.request.user:
             raise PermissionDenied("Bạn không có quyền chỉnh sửa bài viết này.")
         serializer.save()
 
@@ -125,17 +125,17 @@ class PostViewSet(viewsets.ModelViewSet):
         """
         Kiểm tra quyền sở hữu trước khi xóa bài viết.
         """
-        if instance.user != self.request.user:  # Kiểm tra quyền xóa bài viết
+        if instance.user != self.request.user:
             raise PermissionDenied("Bạn không có quyền xóa bài viết này.")
-        instance.delete()  # Xóa bài viết
+        instance.delete()
 
     @action(methods=['post'], detail=True, url_path='react', permission_classes=[IsAuthenticated])
     def react(self, request, pk=None):
         """
         Thả cảm xúc vào bài viết.
         """
-        post = self.get_object()  # Lấy bài viết từ pk
-        reaction_type = request.data.get('reaction_type')  # Lấy loại cảm xúc từ request
+        post = self.get_object()
+        reaction_type = request.data.get('reaction_type')
 
         if reaction_type not in dict(Reaction.REACTION_CHOICES):
             raise ValidationError("Loại cảm xúc không hợp lệ.")
@@ -148,11 +148,7 @@ class PostViewSet(viewsets.ModelViewSet):
             defaults={'reaction_type': reaction_type}
         )
 
-        if created:
-            message = "Đã thêm cảm xúc."
-        else:
-            message = "Đã cập nhật cảm xúc."
-
+        message = "Đã thêm cảm xúc." if created else "Đã cập nhật cảm xúc."
         return Response({
             "message": message,
             "reaction": ReactionSerializer(reaction, context={'request': request}).data
@@ -184,9 +180,35 @@ class PostViewSet(viewsets.ModelViewSet):
             "reaction_summary": {reaction['reaction_type']: reaction['count'] for reaction in summary}
         })
 
+    @action(methods=['post'], detail=True, url_path='lock-comments', permission_classes=[IsAuthenticated])
+    def lock_comments(self, request, pk=None):
+        """
+        Khóa bình luận của bài viết.
+        """
+        post = self.get_object()
+        if post.user != request.user:
+            raise PermissionDenied("Bạn không có quyền khóa bình luận bài viết này.")
+        post.is_comment_locked = True
+        post.save()
+        return Response({"message": "Đã khóa bình luận cho bài viết này."}, status=200)
+
+    @action(methods=['post'], detail=True, url_path='unlock-comments', permission_classes=[IsAuthenticated])
+    def unlock_comments(self, request, pk=None):
+        """
+        Mở khóa bình luận của bài viết.
+        """
+        post = self.get_object()
+        if post.user != request.user:
+            raise PermissionDenied("Bạn không có quyền mở khóa bình luận bài viết này.")
+        post.is_comment_locked = False
+        post.save()
+        return Response({"message": "Đã mở khóa bình luận cho bài viết này."}, status=200)
+
 class ReactionViewSet(viewsets.ModelViewSet):
     queryset = Reaction.objects.all()
     serializer_class = ReactionSerializer
+
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
@@ -201,11 +223,13 @@ class CommentViewSet(viewsets.ModelViewSet):
         Gắn người dùng hiện tại vào bình luận khi tạo mới.
         """
         try:
-            post = Post.objects.get(id=self.request.data['post'])  # Lấy bài viết từ request
+            post = Post.objects.get(id=self.request.data['post'])
         except Post.DoesNotExist:
             raise ValidationError("Bài viết không tồn tại.")
 
-            # Gán user từ request và lưu bình luận
+        if post.is_comment_locked:
+            raise ValidationError("Bài viết này đã khóa bình luận.")
+
         serializer.save(user=self.request.user, post=post)
 
     def perform_update(self, serializer):
@@ -233,7 +257,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         comment = self.get_object()
         reaction_type = request.data.get('reaction_type')
 
-
         if reaction_type not in dict(Reaction.REACTION_CHOICES):
             raise ValidationError("Loại cảm xúc không hợp lệ.")
 
@@ -246,7 +269,6 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
 
         message = "Đã thêm cảm xúc." if created else "Đã cập nhật cảm xúc."
-
         return Response({
             "message": message,
             "reaction": ReactionSerializer(reaction, context={'request': request}).data
@@ -277,3 +299,4 @@ class CommentViewSet(viewsets.ModelViewSet):
         return Response({
             "reaction_summary": {reaction['reaction_type']: reaction['count'] for reaction in summary}
         })
+

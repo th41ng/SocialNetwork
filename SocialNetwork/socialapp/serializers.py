@@ -61,7 +61,7 @@ class PostSerializer(serializers.ModelSerializer):
             'is_comment_locked',
             'comments',
             'reactions',
-            'reaction_summary',  # Thêm trường này
+            'reaction_summary',
             'created_date',
             'updated_date',
         ]
