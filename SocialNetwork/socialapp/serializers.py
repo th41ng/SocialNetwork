@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.db.models import Count
 from rest_framework import serializers
-from .models import Post, User, PostCategory, Comment, Reaction, Survey, SurveyResponse
+from .models import Post, User, PostCategory, Comment, Reaction, Survey, SurveyResponse, SurveyQuestion, SurveyOption
 from cloudinary.models import CloudinaryField
 
 class UserSerializer(serializers.ModelSerializer):
@@ -112,13 +112,30 @@ class ProfileWithPostsSerializer(serializers.Serializer):
     posts = PostSerializer(many=True)  # Các bài viết với đầy đủ thông tin về cảm xúc và bình luận
 
 # khảo sát
+
+class SurveyOptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SurveyOption
+        fields = ['id', 'text']
+
+
+class SurveyQuestionSerializer(serializers.ModelSerializer):
+    options = SurveyOptionSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SurveyQuestion
+        fields = ['id', 'text', 'question_type', 'options']
+
+
 class SurveySerializer(serializers.ModelSerializer):
     created_by = UserSerializer(read_only=True)
+    questions = SurveyQuestionSerializer(many=True, read_only=True)
 
     class Meta:
         model = Survey
-        fields = ['id', 'title', 'description', 'status', 'created_by', 'created_date', 'updated_date']
+        fields = ['id', 'title', 'description', 'status', 'created_by', 'created_date', 'updated_date', 'questions']
         read_only_fields = ['created_by', 'created_date', 'updated_date']
+
 
 class SurveyResponseSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -128,3 +145,4 @@ class SurveyResponseSerializer(serializers.ModelSerializer):
         model = SurveyResponse
         fields = ['id', 'survey', 'user', 'response_data', 'created_date']
         read_only_fields = ['user', 'survey', 'created_date']
+

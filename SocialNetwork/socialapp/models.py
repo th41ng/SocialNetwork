@@ -114,6 +114,25 @@ class SurveyResponse(BaseModel):
     def __str__(self):
         return f"Response by {self.user.username} for {self.survey.title}"
 
+class SurveyQuestion(BaseModel):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField()  # Nội dung câu hỏi
+    question_type = models.CharField(
+        max_length=20,
+        choices=[('text', 'Text'), ('multiple_choice', 'Multiple Choice')],
+        default='text'
+    )
+
+    def __str__(self):
+        return self.text
+
+
+class SurveyOption(BaseModel):
+    question = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE, related_name='options')
+    text = models.CharField(max_length=255)  # Nội dung đáp án
+
+    def __str__(self):
+        return self.text
 
 class Group(BaseModel):
     name = models.CharField(max_length=100, unique=True)

@@ -5,7 +5,9 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthentic
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from .models import User, Post, Reaction, Comment, Survey, SurveyResponse
+from rest_framework.views import APIView
+
+from .models import User, Post, Reaction, Comment, Survey, SurveyResponse, SurveyQuestion, SurveyOption
 from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer, \
     ProfileWithPostsSerializer, ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer
 from django.utils import timezone
@@ -301,20 +303,27 @@ class CommentViewSet(viewsets.ModelViewSet):
         })
 
 class SurveyViewSet(viewsets.ModelViewSet):
-    """
-    Xử lý API cho Survey (Khảo sát).
-    """
     queryset = Survey.objects.all()
     serializer_class = SurveySerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        """
-        Gắn người tạo là quản trị viên hiện tại.
-        """
-        if not self.request.user.is_staff:  # Chỉ cho phép admin tạo khảo sát
+        if not self.request.user.is_staff:
             raise PermissionDenied("Chỉ quản trị viên mới có quyền tạo khảo sát.")
-        serializer.save(created_by=self.request.user)
+        survey = serializer.save(created_by=self.request.user)
+
+        # Thêm câu hỏi và đáp án mẫu (nếu cần)
+        questions_data = self.request.data.get('questions', [])
+        for question_data in questions_data:
+            question = SurveyQuestion.objects.create(
+                survey=survey,
+                text=question_data['text'],
+                question_type=question_data['question_type']
+            )
+            if 'options' in question_data:
+                for option_data in question_data['options']:
+                    SurveyOption.objects.create(question=question, text=option_data['text'])
+
 
 class SurveyResponseViewSet(viewsets.ModelViewSet):
     """
@@ -322,16 +331,47 @@ class SurveyResponseViewSet(viewsets.ModelViewSet):
     """
     queryset = SurveyResponse.objects.all()
     serializer_class = SurveyResponseSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         """
         Gắn user hiện tại và survey vào phản hồi khảo sát.
         """
         survey_id = self.request.data.get('survey')
+        response_data = self.request.data.get('response_data', {})
+
         try:
             survey = Survey.objects.get(id=survey_id)
         except Survey.DoesNotExist:
             raise ValidationError("Khảo sát không tồn tại.")
 
+        # Validate câu trả lời
+        for question in survey.questions.all():
+            question_id = str(question.id)
+            if question.question_type == 'multiple_choice':
+                if response_data.get(question_id) not in [o.text for o in question.options.all()]:
+                    raise ValidationError(f"Invalid response for question: {question.text}")
+
         serializer.save(user=self.request.user, survey=survey)
+
+class SurveyStatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            survey = Survey.objects.get(pk=pk)
+        except Survey.DoesNotExist:
+            return Response({"error": "Khảo sát không tồn tại."}, status=404)
+
+        statistics = {}
+        for question in survey.questions.all():
+            if question.question_type == 'multiple_choice':
+                statistics[question.text] = {}
+                for option in question.options.all():
+                    count = SurveyResponse.objects.filter(
+                        survey=survey,
+                        response_data__contains={str(question.id): option.text}
+                    ).count()
+                    statistics[question.text][option.text] = count
+
+        return Response(statistics)
