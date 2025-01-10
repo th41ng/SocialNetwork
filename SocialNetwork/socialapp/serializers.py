@@ -1,5 +1,8 @@
+from django.core.mail import send_mail
 from django.utils import timezone
 from rest_framework import serializers
+
+from socialapp_api import settings
 from .models import Post, User, PostCategory, Comment, Reaction, Group, Notification, Event, GroupMember
 from cloudinary.models import CloudinaryField
 
@@ -122,7 +125,43 @@ class GroupSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
-        fields = ['id', 'title', 'content', 'recipient_group', 'recipients', 'is_sent']
+        fields = ['id', 'title', 'content', 'recipient_group', 'recipient_user', 'event', 'created_by']
+
+    def create(self, validated_data):
+        """
+        Tạo thông báo và gửi email sau khi lưu.
+        """
+        notification = Notification.objects.create(**validated_data)
+
+        # Gửi email sau khi thông báo được tạo
+        self.send_notification_email(notification)
+
+        return notification
+
+    def send_notification_email(self, notification):
+        """
+        Gửi email cho người nhận thông báo.
+        """
+        if notification.recipient_user:
+            # Gửi email đến cá nhân
+            send_mail(
+                notification.title,
+                notification.content,
+                settings.DEFAULT_FROM_EMAIL,
+                [notification.recipient_user.email],
+                fail_silently=False,
+            )
+        elif notification.recipient_group:
+            # Gửi email đến tất cả thành viên trong nhóm
+            users = notification.recipient_group.members.all()
+            for user in users:
+                send_mail(
+                    notification.title,
+                    notification.content,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
 
 
 class EventSerializer(serializers.ModelSerializer):

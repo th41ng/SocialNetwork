@@ -2,6 +2,10 @@
 from datetime import timedelta
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from rest_framework.exceptions import PermissionDenied
+
+from socialapp_api import settings
 from .models import Role, PostCategory, Post, Comment, Reaction, Survey, SurveyResponse, Group, GroupMember, \
     Notification, Statistic
 from django.utils.html import format_html
@@ -17,7 +21,6 @@ class RoleAdmin(admin.ModelAdmin):
 admin.site.register(Role, RoleAdmin)
 
 from datetime import timedelta
-
 class UserAdmin(admin.ModelAdmin):
     list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'last_login']
     list_filter = ['role', 'is_active']
@@ -43,6 +46,23 @@ class UserAdmin(admin.ModelAdmin):
         if obj.role and obj.role.name == 'Giảng viên' and not change:
             obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
             obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
+
+            # Gửi email yêu cầu thay đổi mật khẩu
+            subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
+            message = (
+                f"Chào {obj.first_name} {obj.last_name},\n\n"
+                f"Bạn đã được tạo tài khoản với mật khẩu mặc định: 'ou@123'.\n"
+                "Vui lòng đăng nhập và thay đổi mật khẩu của bạn trong vòng 24 giờ.\n\n"
+                "Trân trọng,\n"
+                "Quản trị viên"
+            )
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [obj.email],
+                fail_silently=False,
+            )
 
         # Mã hóa mật khẩu nếu cần thiết
         if not change or not obj.check_password(obj.password):
@@ -153,6 +173,8 @@ class GroupAdmin(admin.ModelAdmin):
     list_per_page = 20
     inlines = [GroupMemberInline]  # Gắn GroupMemberInline để quản lý thành viên trong nhóm
 
+from django.contrib import admin
+from .models import Notification
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
@@ -162,7 +184,30 @@ class NotificationAdmin(admin.ModelAdmin):
     ordering = ['-created_date']
     list_per_page = 20
 
+    def save_model(self, request, obj, form, change):
+        """
+        Đảm bảo rằng chỉ quản trị viên mới có thể tạo hoặc chỉnh sửa thông báo.
+        Đồng thời gửi email khi thông báo được tạo hoặc chỉnh sửa.
+        """
+        if not request.user.is_staff:
+            raise PermissionDenied("Only admin can create or edit notifications.")
 
+        # Gắn người tạo thông báo
+        if not obj.pk:  # Chỉ gắn khi thông báo được tạo mới
+            obj.created_by = request.user
+
+        # Lưu đối tượng vào cơ sở dữ liệu
+        super().save_model(request, obj, form, change)
+
+        # Gửi email sau khi lưu
+        try:
+            obj.send_notification_email()
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Notification saved but failed to send email: {e}",
+                level='error'
+            )
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):

@@ -1,7 +1,11 @@
+from django.core.mail import send_mail
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
 from cloudinary.models import CloudinaryField
+
+from socialapp_api import settings
+
 
 # User roles
 class Role(models.Model):
@@ -124,19 +128,40 @@ class Group(BaseModel):
 
 
 class Notification(BaseModel):
-    created_by = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='created_notifications'
-    )
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     content = models.TextField()
     recipient_group = models.ForeignKey('Group', on_delete=models.SET_NULL, null=True, blank=True)
-    recipient_user = models.ForeignKey(
-        'User', on_delete=models.SET_NULL, null=True, blank=True, related_name='received_notifications'
-    )
-    event = models.ForeignKey('Event', on_delete=models.SET_NULL, null=True, blank=True)  # Thêm liên kết đến Event
+    recipient_user = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='received_notifications')
+    event = models.ForeignKey('Event', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return self.title
+
+    def send_notification_email(self):
+        """
+        Gửi email cho người nhận thông báo.
+        """
+        if self.recipient_user:
+            # Gửi email đến cá nhân
+            send_mail(
+                self.title,
+                self.content,
+                settings.DEFAULT_FROM_EMAIL,
+                [self.recipient_user.email],
+                fail_silently=False,
+            )
+        elif self.recipient_group:
+            # Gửi email đến tất cả thành viên trong nhóm
+            users = self.recipient_group.members.all()
+            for user in users:
+                send_mail(
+                    self.title,
+                    self.content,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
 
 
 

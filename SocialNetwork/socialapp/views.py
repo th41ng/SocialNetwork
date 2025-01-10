@@ -161,16 +161,28 @@ class GroupViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         ).distinct()
 
 
-class NotificationViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+class AdminPermission(IsAuthenticated):
     """
-    API quản lý thông báo.
+    Kiểm tra xem người dùng có phải là quản trị viên không.
+    """
+    def has_permission(self, request, view):
+        # Kiểm tra nếu người dùng có quyền 'is_staff' (quản trị viên)
+        if request.user.is_staff:  # Assuming that the 'is_staff' field determines admin users
+            return True
+        raise PermissionDenied("You must be an admin to create notifications.")
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """
+    API quản lý thông báo. Chỉ cho phép quản trị viên tạo thông báo.
     """
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AdminPermission]  # Chỉ cho phép quản trị viên
 
     def perform_create(self, serializer):
-        # Lưu thông báo và tự động liên kết người tạo
+        """
+        Lưu thông báo và tự động liên kết người tạo (quản trị viên).
+        """
         serializer.save(created_by=self.request.user)
 
     def get_queryset(self):
@@ -180,7 +192,6 @@ class NotificationViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         user_groups = GroupMember.objects.filter(user=self.request.user).values_list('group', flat=True)
         return Notification.objects.filter(
             Q(recipient_group__in=user_groups) |
-            Q(recipient_user=self.request.user) |  # Thêm điều kiện cho người nhận cá nhân
             Q(created_by=self.request.user)
         ).distinct()
 
