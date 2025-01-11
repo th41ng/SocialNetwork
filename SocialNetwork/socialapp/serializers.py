@@ -1,7 +1,11 @@
+from django.core.mail import send_mail
 from django.utils import timezone
 from django.db.models import Count
 from rest_framework import serializers
-from .models import Post, User, PostCategory, Comment, Reaction, Survey, SurveyResponse, SurveyQuestion, SurveyOption
+from .models import Survey, SurveyResponse, SurveyQuestion, SurveyOption
+from socialapp_api import settings
+from .models import Post, User, PostCategory, Comment, Reaction, Group, Notification, Event, GroupMember
+
 from cloudinary.models import CloudinaryField
 
 class UserSerializer(serializers.ModelSerializer):
@@ -145,4 +149,86 @@ class SurveyResponseSerializer(serializers.ModelSerializer):
         model = SurveyResponse
         fields = ['id', 'survey', 'user', 'response_data', 'created_date']
         read_only_fields = ['user', 'survey', 'created_date']
+    posts = PostSerializer(many=True)
+
+
+#tạo nhóm chỉ định nhóm gửi thông báo sự kiện
+class GroupSerializer(serializers.ModelSerializer):
+    members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'members']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'content', 'recipient_group', 'recipient_user', 'event', 'created_by']
+
+    def create(self, validated_data):
+        """
+        Tạo thông báo và gửi email sau khi lưu.
+        """
+        notification = Notification.objects.create(**validated_data)
+
+        # Gửi email sau khi thông báo được tạo
+        self.send_notification_email(notification)
+
+        return notification
+
+    def send_notification_email(self, notification):
+        """
+        Gửi email cho người nhận thông báo.
+        """
+        if notification.recipient_user:
+            # Gửi email đến cá nhân
+            send_mail(
+                notification.title,
+                notification.content,
+                settings.DEFAULT_FROM_EMAIL,
+                [notification.recipient_user.email],
+                fail_silently=False,
+            )
+        elif notification.recipient_group:
+            # Gửi email đến tất cả thành viên trong nhóm
+            users = notification.recipient_group.members.all()
+            for user in users:
+                send_mail(
+                    notification.title,
+                    notification.content,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    fail_silently=False,
+                )
+
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = ['id', 'title', 'description', 'start_time', 'end_time', 'attendees', 'created_by', 'notification']
+
+
+class GroupMemberSerializer(serializers.ModelSerializer):
+    users = serializers.ListField(
+        child=serializers.IntegerField(),  # Danh sách ID của User
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = GroupMember
+        fields = ['id', 'group', 'user', 'is_admin', 'created_date', 'users']
+
+    def create(self, validated_data):
+        users = validated_data.pop('users', [])
+        group = validated_data.get('group')
+
+        # Tạo GroupMember cho từng user
+        group_members = []
+        for user_id in users:
+            user = User.objects.get(id=user_id)
+            group_member = GroupMember.objects.create(group=group, user=user, **validated_data)
+            group_members.append(group_member)
+        return group_members
 
