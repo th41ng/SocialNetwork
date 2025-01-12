@@ -1,4 +1,5 @@
 from django.db.models import Count
+from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
 from rest_framework import viewsets, permissions, generics
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
@@ -375,3 +376,42 @@ class SurveyStatisticsView(APIView):
                     statistics[question.text][option.text] = count
 
         return Response(statistics)
+
+
+class StatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        data_type = request.query_params.get('type')  # 'users' hoặc 'posts'
+        period = request.query_params.get('period')  # 'year', 'month', hoặc 'quarter'
+
+        if data_type not in ['users', 'posts']:
+            return Response({"error": "Invalid type parameter. Choose 'users' or 'posts'."}, status=400)
+        if period not in ['year', 'month', 'quarter']:
+            return Response({"error": "Invalid period parameter. Choose 'year', 'month', or 'quarter'."}, status=400)
+
+        model = User if data_type == 'users' else Post
+
+        if period == 'year':
+            data = model.objects.annotate(year=TruncYear('date_joined' if data_type == 'users' else 'created_date')).values('year').annotate(count=Count('id')).order_by('year')
+        elif period == 'month':
+            data = model.objects.annotate(month=TruncMonth('date_joined' if data_type == 'users' else 'created_date')).values('month').annotate(count=Count('id')).order_by('month')
+        elif period == 'quarter':
+            data = model.objects.annotate(
+                year=TruncYear('date_joined' if data_type == 'users' else 'created_date'),
+                quarter=ExtractQuarter('date_joined' if data_type == 'users' else 'created_date')
+            ).values('year', 'quarter').annotate(count=Count('id')).order_by('year', 'quarter')
+
+        # Format dữ liệu trả về
+        if period == 'quarter':
+            formatted_data = [
+                {"period": f"{item['year'].year}-Q{item['quarter']}", "count": item['count']}
+                for item in data
+            ]
+        else:
+            formatted_data = [
+                {"period": item['year'].strftime('%Y') if period == 'year' else item['month'].strftime('%Y-%m'), "count": item['count']}
+                for item in data
+            ]
+
+        return Response({"data": formatted_data})
