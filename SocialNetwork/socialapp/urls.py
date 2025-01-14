@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from .views import StatisticsView
 
 
 # Thêm đường dẫn cho các API
@@ -23,4 +24,5 @@ urlpatterns = [
     path('', include(router.urls)),
     # API thống kê khảo sát
     path('surveys/<int:pk>/statistics/', views.SurveyStatisticsView.as_view(), name='survey-statistics'),
+    path('statistics/', StatisticsView.as_view(), name='statistics'),
 ]
