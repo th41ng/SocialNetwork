@@ -1,6 +1,5 @@
 from django.db.models import Count
-from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
-from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
+from django.db.models.functions import TruncYear, ExtractQuarter, TruncMonth
 from rest_framework import viewsets, permissions, generics
 from rest_framework.generics import RetrieveAPIView, get_object_or_404
 from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
@@ -77,6 +76,9 @@ class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
     API để lấy thông tin người dùng hiện tại và danh sách bài viết của họ.
     """
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Post.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         """
@@ -459,10 +461,16 @@ class EventViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         serializer.save(created_by=self.request.user)
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Event.objects.none()
+
         return Event.objects.filter(
-            models.Q(created_by=self.request.user) |
-            models.Q(attendees=self.request.user)
+            Q(created_by=self.request.user) | Q(attendees=self.request.user)
         ).distinct()
+
+
+
+
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def register(self, request, pk=None):
@@ -485,8 +493,6 @@ class GroupMemberViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save()
 # Kết thúc code Tạo nhóm chỉ định sự kiện
-
-
 
 
 class StatisticsView(APIView):

@@ -144,10 +144,10 @@ class SurveySerializer(serializers.ModelSerializer):
 class SurveyResponseSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     survey = SurveySerializer(read_only=True)
-
+    posts = PostSerializer(many=True)  # Trường được khai báo
     class Meta:
         model = SurveyResponse
-        fields = ['id', 'survey', 'user', 'response_data', 'created_date']
+        fields = ['id', 'survey', 'user', 'response_data', 'created_date','posts']
         read_only_fields = ['user', 'survey', 'created_date']
     posts = PostSerializer(many=True)
 
@@ -204,9 +204,16 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    notification = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'start_time', 'end_time', 'attendees', 'created_by', 'notification']
+
+    def get_notification(self, obj):
+        # Logic để trả về giá trị cho trường notification
+        return f"Event '{obj.title}' starts on {obj.start_time}"
+
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):
@@ -231,4 +238,3 @@ class GroupMemberSerializer(serializers.ModelSerializer):
             group_member = GroupMember.objects.create(group=group, user=user, **validated_data)
             group_members.append(group_member)
         return group_members
-

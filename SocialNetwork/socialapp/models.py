@@ -200,9 +200,13 @@ class Event(BaseModel):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     attendees = models.ManyToManyField(User, related_name='events_attending', blank=True)
+    parent_event = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, related_name='sub_events', blank=True, null=True
+    )  # Nếu muốn hỗ trợ sự kiện cha con
 
     def __str__(self):
         return self.title
+
 
 
 
