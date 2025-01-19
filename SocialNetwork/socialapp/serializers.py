@@ -1,17 +1,25 @@
+from datetime import timedelta
+
 from django.core.mail import send_mail
 from django.utils import timezone
 from django.db.models import Count
 from rest_framework import serializers
 from .models import Survey, SurveyResponse, SurveyQuestion, SurveyOption
 from socialapp_api import settings
-from .models import Post, User, PostCategory, Comment, Reaction, Group, Notification, Event, GroupMember
-
+from .models import Post, User, PostCategory, Comment, Reaction, Group, Notification, Event, GroupMember, Role
 from cloudinary.models import CloudinaryField
 
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'name']
+
 class UserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='role.name')
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'avatar', 'cover_image', 'phone_number', 'email']
+        fields = ['id', 'username', 'avatar', 'cover_image', 'phone_number', 'email', 'role', 'student_id','student_id_verified']
 
 class PostCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -70,17 +78,67 @@ class PostSerializer(serializers.ModelSerializer):
             'updated_date',
         ]
 
+
+from django.core.mail import send_mail
+from django.utils.timezone import timedelta
+from django.conf import settings
+from rest_framework import serializers
+from .models import User, Role
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'avatar', 'cover_image', 'phone_number']
+        fields = [
+            'id', 'username', 'email', 'password', 'avatar', 'cover_image', 'phone_number', 'first_name', 'last_name',
+            'role', 'student_id'
+        ]
 
     def create(self, validated_data):
-        # Mã hóa mật khẩu trước khi lưu vào database
+        # If role is not provided, assign a default role (optional)
+        role = validated_data.get('role', None)  # Default role can be assigned here, if needed
+
+        # Handle "Giảng viên" role (set default password)
+        if role and role.name == 'Giảng viên':
+            password = 'ou@123'  # Default password for "Giảng viên"
+            validated_data['password'] = password  # Ensure password is set in validated data
+        else:
+            password = validated_data.get('password')  # Use the provided password if not "Giảng viên"
+
+        # Create the user instance with the password
         user = User.objects.create_user(**validated_data)
+
+        # Assign the role if it's present in validated data
+        if role:
+            user.role = role
+
+        # Handle email sending for "Giảng viên"
+        if user.role and user.role.name == 'Giảng viên':
+            user.password_reset_deadline = user.date_joined + timedelta(days=1)  # Password reset deadline (24 hours)
+            # Send email requiring password change
+            subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
+            message = (
+                f"Chào {user.first_name} {user.last_name},\n\n"
+                f"Bạn đã được tạo tài khoản với mật khẩu mặc định: 'ou@123'.\n"
+                "Vui lòng đăng nhập và thay đổi mật khẩu của bạn trong vòng 24 giờ.\n\n"
+                "Trân trọng,\n"
+                "Quản trị viên"
+            )
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+
+        # Save the user instance
+        user.save()
+
         return user
+
 
 class UpdatePasswordSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -144,10 +202,10 @@ class SurveySerializer(serializers.ModelSerializer):
 class SurveyResponseSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     survey = SurveySerializer(read_only=True)
-
+    posts = PostSerializer(many=True)  # Trường được khai báo
     class Meta:
         model = SurveyResponse
-        fields = ['id', 'survey', 'user', 'response_data', 'created_date']
+        fields = ['id', 'survey', 'user', 'response_data', 'created_date','posts']
         read_only_fields = ['user', 'survey', 'created_date']
     posts = PostSerializer(many=True)
 
@@ -204,9 +262,16 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class EventSerializer(serializers.ModelSerializer):
+    notification = serializers.SerializerMethodField()
+
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'start_time', 'end_time', 'attendees', 'created_by', 'notification']
+
+    def get_notification(self, obj):
+        # Logic để trả về giá trị cho trường notification
+        return f"Event '{obj.title}' starts on {obj.start_time}"
+
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):

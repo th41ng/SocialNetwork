@@ -22,11 +22,9 @@ class User(AbstractUser):
     cover_image = CloudinaryField('cover_image', null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True,unique=True)
     email = models.CharField(max_length=50,null=False,unique=True)
-    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     password_reset_deadline = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    email_verified = models.BooleanField(default=False)
-    phone_verified = models.BooleanField(default=False)
+    student_id_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -200,9 +198,13 @@ class Event(BaseModel):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     attendees = models.ManyToManyField(User, related_name='events_attending', blank=True)
+    parent_event = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, related_name='sub_events', blank=True, null=True
+    )  # Nếu muốn hỗ trợ sự kiện cha con
 
     def __str__(self):
         return self.title
+
 
 
 

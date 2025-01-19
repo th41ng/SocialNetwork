@@ -1,16 +1,15 @@
 from django.db.models import Count
-from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
-from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
 from rest_framework import viewsets, permissions, generics
 from rest_framework.generics import RetrieveAPIView, get_object_or_404
-from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated
+from rest_framework.permissions import BasePermission, SAFE_METHODS, IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.views import APIView
 
-from .models import Reaction, Comment, Survey, SurveyResponse, SurveyQuestion, SurveyOption
-from .serializers import ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer
+from .models import Reaction, Comment, Survey, SurveyResponse, SurveyQuestion, SurveyOption, Role
+from .serializers import ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer, \
+    RoleSerializer
 
 from rest_framework.exceptions import PermissionDenied
 
@@ -36,8 +35,8 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         Cung cấp quyền truy cập cho các phương thức khác nhau.
         """
         if self.action in ['get_current_user']:
-            return [permissions.IsAuthenticated()]  # Chỉ cho phép người dùng đã đăng nhập
-        return [permissions.AllowAny()]  # Các hành động khác đều được phép truy cập
+            return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
     @action(methods=['post'], url_path='update-password', detail=False)
     def update_password(self, request):
@@ -72,11 +71,31 @@ class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         return Response({"error": "Tài khoản này chưa bị khoá hoặc không cần reset."}, status=400)
 
 
+class RoleViewSet(viewsets.ModelViewSet):
+    """
+    API cho Role, hỗ trợ CRUD và lấy danh sách tất cả roles.
+    """
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer  # Chỉ định serializer
+
+    @action(detail=False, methods=['get'], url_path='all')
+    def get_all_roles(self, request):
+        """
+        Lấy tất cả roles mà không yêu cầu xác thực.
+        """
+        roles = self.get_queryset()
+        data = [{"id": role.id, "name": role.name} for role in roles]
+        return Response(data)
+
+
 class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
     """
     API để lấy thông tin người dùng hiện tại và danh sách bài viết của họ.
     """
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Post.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
         """
@@ -459,10 +478,14 @@ class EventViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
         serializer.save(created_by=self.request.user)
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Event.objects.none()
+
         return Event.objects.filter(
-            models.Q(created_by=self.request.user) |
-            models.Q(attendees=self.request.user)
+            Q(created_by=self.request.user) | Q(attendees=self.request.user)
         ).distinct()
+
+
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def register(self, request, pk=None):
@@ -486,43 +509,3 @@ class GroupMemberViewSet(viewsets.ModelViewSet):
         serializer.save()
 # Kết thúc code Tạo nhóm chỉ định sự kiện
 
-
-
-
-class StatisticsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        data_type = request.query_params.get('type')  # 'users' hoặc 'posts'
-        period = request.query_params.get('period')  # 'year', 'month', hoặc 'quarter'
-
-        if data_type not in ['users', 'posts']:
-            return Response({"error": "Invalid type parameter. Choose 'users' or 'posts'."}, status=400)
-        if period not in ['year', 'month', 'quarter']:
-            return Response({"error": "Invalid period parameter. Choose 'year', 'month', or 'quarter'."}, status=400)
-
-        model = User if data_type == 'users' else Post
-
-        if period == 'year':
-            data = model.objects.annotate(year=TruncYear('date_joined' if data_type == 'users' else 'created_date')).values('year').annotate(count=Count('id')).order_by('year')
-        elif period == 'month':
-            data = model.objects.annotate(month=TruncMonth('date_joined' if data_type == 'users' else 'created_date')).values('month').annotate(count=Count('id')).order_by('month')
-        elif period == 'quarter':
-            data = model.objects.annotate(
-                year=TruncYear('date_joined' if data_type == 'users' else 'created_date'),
-                quarter=ExtractQuarter('date_joined' if data_type == 'users' else 'created_date')
-            ).values('year', 'quarter').annotate(count=Count('id')).order_by('year', 'quarter')
-
-        # Format dữ liệu trả về
-        if period == 'quarter':
-            formatted_data = [
-                {"period": f"{item['year'].year}-Q{item['quarter']}", "count": item['count']}
-                for item in data
-            ]
-        else:
-            formatted_data = [
-                {"period": item['year'].strftime('%Y') if period == 'year' else item['month'].strftime('%Y-%m'), "count": item['count']}
-                for item in data
-            ]
-
-        return Response({"data": formatted_data})

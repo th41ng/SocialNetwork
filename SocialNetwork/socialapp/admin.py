@@ -21,38 +21,45 @@ class RoleAdmin(admin.ModelAdmin):
 admin.site.register(Role, RoleAdmin)
 
 from datetime import timedelta
+from django.contrib import admin
+from django.core.mail import send_mail
+from django.utils import timezone
+from .models import User
+from datetime import timedelta
+from django.conf import settings
+
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'last_login']
-    list_filter = ['role', 'is_active']
+    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'student_id_verified']
+    list_filter = ['role', 'is_active', 'student_id_verified']
     search_fields = ['username', 'first_name', 'last_name', 'student_id', 'email']
-    readonly_fields = ['last_login', 'password_reset_deadline']
+    readonly_fields = ['password_reset_deadline']
 
-    def get_form(self, request, obj=None, **kwargs):
-        """
-        Tùy chỉnh form hiển thị trên giao diện admin.
-        - Nếu tạo mới giảng viên: Ẩn trường mật khẩu.
-        - Nếu chỉnh sửa hoặc tài khoản khác: Hiển thị trường mật khẩu.
-        """
-        form = super().get_form(request, obj, **kwargs)
-        if not obj:  # Khi tạo mới
-            form.base_fields['password'].required = False  # Không bắt buộc nhập mật khẩu
-        return form
+    actions = ['mark_student_id_verified']
 
-    def save_model(self, request, obj, form, change):
-        """
-        Phương thức này thực thi khi lưu đối tượng người dùng.
-        Nếu là giảng viên và đang tạo mới, tự động đặt mật khẩu mặc định.
-        """
-        if obj.role and obj.role.name == 'Giảng viên' and not change:
-            obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
-            obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
+    def mark_student_id_verified(self, request, queryset):
+        # Kiểm tra xem có đối tượng nào được chọn không
+        if not queryset:
+            self.message_user(request, "Chưa có người dùng nào được chọn.")
+            return
 
-            # Gửi email yêu cầu thay đổi mật khẩu
-            subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
+        # Duyệt qua từng đối tượng và lưu lại sau khi thay đổi
+        updated_count = 0
+        for user in queryset:
+            if not user.student_id_verified:  # Chỉ thay đổi nếu chưa xác thực
+                user.student_id_verified = True
+                user.save()  # Lưu thay đổi vào cơ sở dữ liệu
+                updated_count += 1
+
+        if updated_count > 0:
+            self.message_user(request, f"Đã xác thực mã sinh viên cho {updated_count} người dùng.")
+        else:
+            self.message_user(request, "Tất cả người dùng đã được xác thực mã sinh viên.")
+            # Handle 'Sinh Viên' role
+            # Send email for Sinh Viên role
+            subject = 'Đã xác nhận mã sinh viên'
             message = (
-                f"Chào {obj.first_name} {obj.last_name},\n\n"
-                f"Bạn đã được tạo tài khoản với mật khẩu mặc định: 'ou@123'.\n"
-                "Vui lòng đăng nhập và thay đổi mật khẩu của bạn trong vòng 24 giờ.\n\n"
+                f"Chào {user.first_name} {user.last_name},\n\n"
+                f"Bạn đã đủ điều kiện đăng nhập.\n"
                 "Trân trọng,\n"
                 "Quản trị viên"
             )
@@ -60,9 +67,42 @@ class UserAdmin(admin.ModelAdmin):
                 subject,
                 message,
                 settings.DEFAULT_FROM_EMAIL,
-                [obj.email],
+                [user.email],
                 fail_silently=False,
             )
+    mark_student_id_verified.short_description = "Xác thực mã sinh viên"
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if not obj:  # Khi tạo mới
+            form.base_fields['password'].required = False  # Không bắt buộc nhập mật khẩu
+        return form
+
+    def save_model(self, request, obj, form, change):
+        if not change:  # Chỉ thay đổi mật khẩu khi tạo mới
+            if obj.role and obj.role.name == 'Giảng viên':
+                obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
+                obj.password_reset_deadline = obj.date_joined + timedelta(days=1)  # Thời gian thay đổi mật khẩu là 24 giờ từ khi đăng ký
+                # Gửi email yêu cầu thay đổi mật khẩu
+                subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
+                message = (
+                    f"Chào {obj.first_name} {obj.last_name},\n\n"
+                    f"Bạn đã được tạo tài khoản với mật khẩu mặc định: 'ou@123'.\n"
+                    "Vui lòng đăng nhập và thay đổi mật khẩu của bạn trong vòng 24 giờ.\n\n"
+                    "Trân trọng,\n"
+                    "Quản trị viên"
+                )
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [obj.email],
+                    fail_silently=False,
+                )
+
+        # Kiểm tra và lưu giá trị student_id_verified nếu có sự thay đổi
+        if 'student_id_verified' in form.changed_data:
+            obj.student_id_verified = form.cleaned_data.get('student_id_verified', obj.student_id_verified)
 
         # Mã hóa mật khẩu nếu cần thiết
         if not change or not obj.check_password(obj.password):
@@ -71,7 +111,6 @@ class UserAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
 admin.site.register(User, UserAdmin)
-
 
 
 # PostCategory Admin
