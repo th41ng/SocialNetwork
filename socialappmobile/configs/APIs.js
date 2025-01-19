@@ -1,5 +1,6 @@
 import axios from "axios";
 
+
 const BASE_URL = "https://danhdanghoang.pythonanywhere.com/";
 
 export const endpoints = {
@@ -7,6 +8,7 @@ export const endpoints = {
   register: "/users/",
   profile: "/profile/",
   getRoles: "/roles/",
+'posts' : '/posts/',
 };
 
 export const authApis = (token) => {

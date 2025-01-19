@@ -296,4 +296,3 @@ class GroupMemberSerializer(serializers.ModelSerializer):
             group_member = GroupMember.objects.create(group=group, user=user, **validated_data)
             group_members.append(group_member)
         return group_members
-
