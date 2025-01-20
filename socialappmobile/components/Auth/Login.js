@@ -61,7 +61,7 @@ const Login = () => {
         payload: { username: userData.username },
       });
   
-      navigation.navigate("UserProfile");
+      navigation.navigate("Home");
     } catch (error) {
       console.error("Login error:", error);
       alert("Đăng nhập thất bại. Vui lòng thử lại.");
