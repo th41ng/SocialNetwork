@@ -8,7 +8,7 @@ export const endpoints = {
   profile: "/profile/",
   getRoles: "/roles/",
   posts: "/posts/",
-  verifyOldPassword: "/users/verify-old-password/", // Add the endpoint to verify old password
+  // verifyOldPassword: "/users/verify-old-password/", // Add the endpoint to verify old password
 };
 
 export const authApis = (token) => {
@@ -25,8 +25,8 @@ export const authApis = (token) => {
 
 // Default axios instance without authorization (for public endpoints)
 export default axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+    baseURL: BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+    },
 });

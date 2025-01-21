@@ -4,7 +4,11 @@ from rest_framework.response import Response
 from rest_framework import status
 import cloudinary
 import cloudinary.uploader
+<<<<<<< HEAD
 from django.contrib.auth.hashers import check_password, make_password
+=======
+
+>>>>>>> origin/danh
 from django.db.models.functions import TruncYear, ExtractQuarter, TruncMonth
 
 from rest_framework import viewsets, permissions, generics
@@ -35,14 +39,22 @@ class UserViewSet(viewsets.ModelViewSet):
     Xử lý API cho User.
     """
     queryset = User.objects.all()
+<<<<<<< HEAD
     serializer_class = UserSerializer
+=======
+    serializer_class = UserSerializer  # Thay đổi thành UserSerializer
+>>>>>>> origin/danh
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         """
         Cung cấp quyền truy cập cho các phương thức khác nhau.
         """
+<<<<<<< HEAD
         if self.action in ['get_current_user', 'update_user', 'change_password']:
+=======
+        if self.action in ['get_current_user', 'update_user']:
+>>>>>>> origin/danh
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
@@ -63,6 +75,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
+<<<<<<< HEAD
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -84,6 +97,11 @@ class UserViewSet(viewsets.ModelViewSet):
         # Kiểm tra xác nhận mật khẩu mới
         if new_password != confirm_password:
             return Response({"error": "Mật khẩu mới không khớp."}, status=status.HTTP_400_BAD_REQUEST)
+=======
+            serializer.save()  # Cập nhật người dùng
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+>>>>>>> origin/danh
 
         # Cập nhật mật khẩu
         user.password = make_password(new_password)
@@ -586,4 +604,7 @@ class UploadImageView(APIView):
 
         return Response({"image_url": image_url}, status=status.HTTP_201_CREATED)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/danh

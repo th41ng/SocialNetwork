@@ -15,11 +15,42 @@ class RoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 class UserSerializer(serializers.ModelSerializer):
+<<<<<<< HEAD
     role = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = ['id', 'username', 'avatar', 'cover_image','phone_number', 'email', 'role','student_id', 'student_id_verified']
+=======
+    role = serializers.CharField(source='role.name', read_only=True)  # Sử dụng đúng cách để lấy tên role
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'avatar', 'cover_image',
+            'phone_number', 'email', 'role',
+            'student_id', 'student_id_verified',
+        ]
+        read_only_fields = ['id', 'username', 'email', 'role', 'student_id_verified']
+
+    def update(self, instance, validated_data):
+        # Cập nhật avatar nếu có
+        avatar = validated_data.pop('avatar', None)
+        if avatar:
+            instance.avatar = avatar
+
+        # Cập nhật ảnh bìa nếu có
+        cover_image = validated_data.pop('cover_image', None)
+        if cover_image:
+            instance.cover_image = cover_image
+
+        # Cập nhật các trường khác
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+>>>>>>> origin/danh
 
 
 
