@@ -10,7 +10,7 @@ import UserSecurityScreen from './components/Profile/UserSecurity';
 import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
 import HomeScreen from './components/Home/Home';
-import CreatePost from './components/Home/CreatePost';  // Đảm bảo đã import đúng
+import CreatePost from './components/Home/CreatePost';  
 
 const Stack = createStackNavigator();
 
