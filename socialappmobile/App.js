@@ -5,6 +5,8 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import LoginScreen from './components/Auth/Login';
 import RegisterScreen from './components/Auth/Register';
 import ProfileScreen from './components/Profile/UserProfile';
+import EditProfileScreen from './components/Profile/EditProfile';
+import UserSecurityScreen from './components/Profile/UserSecurity';
 import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
 
@@ -27,6 +29,8 @@ export default function App() {
               <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
               <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
               <Stack.Screen name="UserProfile" component={ProfileScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="UserSecurity" component={UserSecurityScreen} options={{ headerShown: false }} />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>

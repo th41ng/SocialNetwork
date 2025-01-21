@@ -5,7 +5,7 @@ const MyUserReducer = (currentState, action) => {
             return action.payload; // payload chứa thông tin user
         }
         case "logout": {
-            return null; // Reset user về null khi logout
+            return {}; // Reset user về null khi logout
         }
         case "set_roles": {
             

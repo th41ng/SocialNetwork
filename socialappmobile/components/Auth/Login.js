@@ -21,8 +21,8 @@ const Login = () => {
       setLoading(true);
   
       const formData = qs.stringify({
-        client_id: "UesP5I1seeUaDeUzTTPB2HxJmb6V0K7tI7dqbSGs",
-        client_secret: "enFoARwSUlY1MeChzohgYbngsCHYYlu2YKZVM0dCmRmbXfDUzokZvgPOhbUjYT4enJqOdQg2LYGadR0MWIHNCzcEocK4ZXMvGXrSpeVcBHCRU7coO9QV9ovi8oZK6JOf",
+        client_id: "2od6fQO9tu6D34r3OLHvpje4Iqsc35LxnhH45wbN",
+        client_secret: "tvbhvOWlQNb3hOypekFHKa6pmzlqN3D4zLiQkaLmcE1D3ns5zdYeiA4wyZip79tZvw45KaD2i7Kg1kAsF8E4FbFLttn1YwYRA68qIWTsCXLqK9ceQCWqKunmSoKiPoNb",
         grant_type: "password",
         username,
         password,
@@ -45,11 +45,25 @@ const Login = () => {
       const token = await AsyncStorage.getItem("token");
       const userResponse = await authApis(token).get(endpoints["profile"]);
       const userData = userResponse.data.user; // Lấy dữ liệu user
-      const role = userData.role; // Lấy role từ phản hồi API
+      console.log("userdata:", userData);
+      const role = userData.role; 
       const isCheck = userData.student_id_verified;
   
       console.log("Role của người dùng:", role);
-  
+      
+
+      // Kiểm tra thời gian cập nhật mật khẩu
+      const password_reset_deadline = new Date(userData.password_reset_deadline);
+      const currentTime = new Date();
+      const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60); 
+      console.log("chenh lech:", timeDifference);
+      if (role === "Giảng viên" && timeDifference > 24) {
+        alert(
+          "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên để gia hạn thời gian đổi mật khẩu."
+        );
+        await AsyncStorage.removeItem("token");
+        return;
+      }
       if (isCheck === false && role !== "Giảng viên") {
         alert("Tài khoản chưa được xác thực mã sinh viên. Vui lòng liên hệ với quản trị viên.");
         await AsyncStorage.removeItem("token");
@@ -58,8 +72,17 @@ const Login = () => {
   
       dispatch({
         type: "login",
-        payload: { username: userData.username },
+        payload: {
+          username: userData.username,
+          email: userData.email,
+          phone_number: userData.phone_number,
+          role: userData.role,
+          avatar: userData.avatar,
+          cover_image: userData.cover_image,
+          // Nếu có các thông tin khác cần lưu, thêm vào đây
+        },
       });
+      
   
       navigation.navigate("UserProfile");
     } catch (error) {
@@ -111,4 +134,5 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Login; 
+
