@@ -1,5 +1,8 @@
 // Initial state - Nên đặt initialState ở đây
+
 export const initialState = { // Thêm export
+
+
     data: { posts: [], reactions: [], comments: [] },
     loading: true,
     visibleComments: {},

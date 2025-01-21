@@ -179,7 +179,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "bold",
+
     marginBottom: 8,
+
+
   },
 });
 
