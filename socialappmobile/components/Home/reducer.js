@@ -1,5 +1,5 @@
-// Initial state (nếu bạn định nghĩa riêng)
-const initialState = {
+// Initial state - Nên đặt initialState ở đây
+export const initialState = { // Thêm export
     data: { posts: [], reactions: [], comments: [] },
     loading: true,
     visibleComments: {},
@@ -27,7 +27,6 @@ const reducer = (state = initialState, action) => {
                         ...state.data,
                         posts: state.data.posts.map(post => {
                             if (post.id === action.payload.postId) {
-                                // Cập nhật reaction summary cho bài post
                                 return {
                                     ...post,
                                     reaction_summary: action.payload.reactionsSummary
@@ -43,7 +42,7 @@ const reducer = (state = initialState, action) => {
                     data: {
                         ...state.data,
                         comments: state.data.comments.map(comment => {
-                            if (comment.id === action.payload.postId) {
+                            if (comment.id === action.payload.commentId) {
                                 return {
                                     ...comment,
                                     reaction_summary: action.payload.reactionsSummary

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import APIs, { endpoints } from "../../configs/APIs";
+import APIs, { endpoints, authApis } from "../../configs/APIs"; // Thay đổi import
 import RenderHtml from "react-native-render-html";
 import HomeStyles from "./HomeStyles";
 import { useNavigation } from "@react-navigation/native";
@@ -17,16 +17,9 @@ import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Initial state
-const initialState = {
-    data: { posts: [], reactions: [], comments: [] },
-    loading: true,
-    visibleComments: {},
-};
 
-// Reducer function (reducer.js) - Đã chuyển nội dung reducer sang file reducer.js
-import reducer from './reducer'; // Giả sử bạn đã tạo file reducer.js
-
+// Import reducer và initialState từ reducer.js
+import reducer, { initialState } from './reducer'; // Import cả initialState
 const Home = ({ navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [nextPage, setNextPage] = useState(null);
@@ -34,10 +27,11 @@ const Home = ({ navigation = useNavigation() }) => {
     // Load posts, reactions, and comments
     const loadPosts = async (url = endpoints["posts"]) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             const [resPosts, resReactions, resComments] = await Promise.all([
-                APIs.get(url),
-                APIs.get("/reactions/"),
-                APIs.get("/comments/"),
+                authApis(token).get(url),
+                authApis(token).get("/reactions/"),
+                authApis(token).get("/comments/"),
             ]);
 
             // Loại bỏ bài viết trùng lặp
@@ -68,18 +62,6 @@ const Home = ({ navigation = useNavigation() }) => {
         loadPosts();
     }, []);
 
-    // Tính toán reactions cho bài viết hoặc bình luận (không còn cần dùng nữa)
-    // const calculateReactions = useMemo(() => (targetType, targetId) => {
-    //     const filteredReactions = state.data.reactions.filter(
-    //         (reaction) => reaction.target_type === targetType && reaction.target_id === targetId
-    //     );
-    //     return {
-    //         like: filteredReactions.filter((r) => r.reaction_type === "like").length,
-    //         haha: filteredReactions.filter((r) => r.reaction_type === "haha").length,
-    //         love: filteredReactions.filter((r) => r.reaction_type === "love").length,
-    //     };
-    // }, [state.data.reactions]);
-
     const getCommentsForPost = useMemo(() => (postId) => {
         return state.data.comments.filter(comment => comment.post === postId);
     }, [state.data.comments]);
@@ -101,10 +83,8 @@ const Home = ({ navigation = useNavigation() }) => {
             const user = JSON.parse(storedUser);
             const userId = user.id;
 
-            const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            };
+            // Sử dụng authApis(token) để gửi request có authentication
+            const authenticatedApis = authApis(token);
 
             // Kiểm tra xem user đã reaction chưa
             const existingReaction = state.data.reactions.find(
@@ -115,47 +95,52 @@ const Home = ({ navigation = useNavigation() }) => {
             if (existingReaction) {
                 if (existingReaction.reaction_type === reactionType) {
                     // Xóa reaction (DELETE)
-                    response = await APIs.delete(`${endpoints.reactions}${existingReaction.id}/`, { headers });
+                    response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
                 } else {
                     // Cập nhật reaction (PATCH)
                     const payload = {
                         reaction_type: reactionType,
                     };
-                    response = await APIs.patch(`${endpoints.reactions}${existingReaction.id}/`, payload, { headers });
+                    response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, payload);
                 }
             } else {
                 // Tạo reaction mới (POST)
                 const payload = {
-                    target_type: targetType,
+                    target_type: targetType, // Thêm target_type vào payload
                     target_id: targetId,
                     reaction_type: reactionType,
                     user: { id: userId },
                 };
                 console.log("Payload sent:", payload);
-                response = await APIs.post(endpoints.reactions, payload, { headers });
+                response = await authenticatedApis.post(endpoints.reactions, payload);
             }
 
             // Xử lý response và cập nhật state
             if (response.status === 200 || response.status === 201 || response.status === 204) {
                 // Lấy thông tin summary của reactions
-                const summaryResponse = await APIs.get(
-                    `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`,
-                    { headers }
+                console.log("Fetching summary for:", targetType, targetId);
+                const summaryResponse = await authenticatedApis.get(
+                    `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`
                 );
 
                 if (summaryResponse.status === 200) {
                     // Cập nhật state cho số lượng reactions của post/comment
+                    console.log("Dispatching UPDATE_POST_REACTIONS with:", {
+                        targetType: targetType,
+                        [targetType === "post" ? "postId" : "commentId"]: targetId,
+                        reactionsSummary: summaryResponse.data.reaction_summary,
+                    });
                     dispatch({
                         type: 'UPDATE_POST_REACTIONS',
                         payload: {
-                            postId: targetId,
+                            targetType: targetType,
+                            [targetType === "post" ? "postId" : "commentId"]: targetId, // Truyền đúng targetId
                             reactionsSummary: summaryResponse.data.reaction_summary,
-                            targetType: targetType
                         }
                     });
 
                     // Cập nhật lại danh sách reactions trong state để lần gọi tiếp theo có dữ liệu đúng
-                    const resReactions = await APIs.get("/reactions/");
+                    const resReactions = await authenticatedApis.get("/reactions/");
                     dispatch({
                         type: 'SET_REACTIONS',
                         payload: resReactions.data.results,
@@ -182,11 +167,11 @@ const Home = ({ navigation = useNavigation() }) => {
     }
 
     const renderPost = ({ item: post }) => {
-        // const postReactions = calculateReactions("post", post.id); // Không cần dùng nữa
         const postComments = getCommentsForPost(post.id);
 
         return (
             <View key={post.id} style={HomeStyles.postContainer}>
+                {/* Header của bài viết */}
                 <View style={HomeStyles.postHeader}>
                     <Avatar.Image
                         source={{ uri: post.user.avatar || "https://via.placeholder.com/150" }}
@@ -203,12 +188,14 @@ const Home = ({ navigation = useNavigation() }) => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Nội dung bài viết */}
                 <RenderHtml
                     contentWidth={screenWidth}
                     source={{ html: post.content }}
                     baseStyle={HomeStyles.postContent}
                 />
 
+                {/* Hình ảnh của bài viết (nếu có) */}
                 {post.image && (
                     <Image
                         source={{ uri: post.image }}
@@ -216,19 +203,19 @@ const Home = ({ navigation = useNavigation() }) => {
                     />
                 )}
 
+                {/*  */}
                 <View style={HomeStyles.interactionRow}>
+                    {/* Các nút tương tác */}
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
-                        {/* Hiển thị reaction_summary từ post */}
                         <Text style={HomeStyles.reactionText}>👍 {post.reaction_summary?.like || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "haha")}>
-                        {/* Hiển thị reaction_summary từ post */}
                         <Text style={HomeStyles.reactionText}>😂 {post.reaction_summary?.haha || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "love")}>
-                        {/* Hiển thị reaction_summary từ post */}
                         <Text style={HomeStyles.reactionText}>❤️ {post.reaction_summary?.love || 0}</Text>
                     </TouchableOpacity>
+                    {/* Nút toggle comments */}
                     <TouchableOpacity
                         style={HomeStyles.interactionButton}
                         onPress={() => toggleComments(post.id)}
@@ -243,18 +230,19 @@ const Home = ({ navigation = useNavigation() }) => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Hiển thị comments nếu visibleComments của post đó là true */}
                 {state.visibleComments[post.id] && (
                     <View style={HomeStyles.comments}>
                         {postComments.map((comment) => {
-                            // const commentReactions = calculateReactions("comment", comment.id); // Không cần dùng nữa
-
                             return (
                                 <View key={comment.id} style={HomeStyles.comment}>
+                                    {/* Avatar của người comment */}
                                     <Avatar.Image
-                                        source={{ uri: "https://via.placeholder.com/150" }}
+                                        source={{ uri: comment.user?.avatar || "https://via.placeholder.com/150" }}
                                         size={30}
                                         style={HomeStyles.commentAvatar}
                                     />
+                                    {/* Nội dung comment */}
                                     <View style={{ flex: 1 }}>
                                         <Text style={HomeStyles.commentUsername}>
                                             {comment.user || "Anonymous"}
@@ -264,17 +252,23 @@ const Home = ({ navigation = useNavigation() }) => {
                                             source={{ html: comment.content }}
                                             baseStyle={HomeStyles.commentContent}
                                         />
+                                        {/* Các nút tương tác cho comment */}
                                         <View style={HomeStyles.reactionRow}>
-                                            {/* Hiển thị reaction_summary từ comment */}
-                                            <Text style={HomeStyles.reactionText}>
-                                                👍 {comment.reaction_summary?.like || 0}
-                                            </Text>
-                                            <Text style={HomeStyles.reactionText}>
-                                                😂 {comment.reaction_summary?.haha || 0}
-                                            </Text>
-                                            <Text style={HomeStyles.reactionText}>
-                                                ❤️ {comment.reaction_summary?.love || 0}
-                                            </Text>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "like")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    👍 {comment.reaction_summary?.like || 0}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "haha")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    😂 {comment.reaction_summary?.haha || 0}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "love")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    ❤️ {comment.reaction_summary?.love || 0}
+                                                </Text>
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
                                 </View>

@@ -1,7 +1,6 @@
-// APIs.js
 import axios from "axios";
 
-const BASE_URL = "https://danhdanghoang.pythonanywhere.com/";
+const BASE_URL = "https://danhdanghoang.pythonanywhere.com";
 
 export const endpoints = {
     login: "/o/token/",
@@ -9,18 +8,18 @@ export const endpoints = {
     profile: "/profile/",
     getRoles: "/roles/",
     posts: "/posts/",
-    create_post: "/posts/", // Thêm endpoint cho tạo bài viết
+    create_post: "/posts/",
     reactions: "/reactions/",
-    
+    comments: "/comments/", // Đã thêm endpoint cho comments
 };
 
 export const authApis = (token) => {
-    console.info("Token:", token); // Log token ra để kiểm tra
+    console.info("Token:", token);
     return axios.create({
         baseURL: BASE_URL,
         headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json", // Thêm Content-Type ở đây
+            "Content-Type": "application/json",
         },
     });
 };
