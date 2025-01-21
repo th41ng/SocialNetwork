@@ -1,40 +1,60 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useReducer, useState } from "react";
 import {
-    ScrollView,
     Text,
     View,
-    StyleSheet,
-    Image,
     Dimensions,
     TouchableOpacity,
-    FlatList
+    FlatList,
+    Image
 } from "react-native";
 import { Avatar } from "react-native-paper";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import APIs, { endpoints } from "../../configs/APIs";
+import { MaterialIcons } from "@expo/vector-icons";
+import APIs, { endpoints, authApis } from "../../configs/APIs"; // Thay đổi import
 import RenderHtml from "react-native-render-html";
+import HomeStyles from "./HomeStyles";
+import { useNavigation } from "@react-navigation/native";
+import Navbar from "../Home/Navbar";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const Home = () => {
-    const [data, setData] = useState({ posts: [], reactions: [], comments: [] });
-    const [loading, setLoading] = useState(true);
-    const [visibleComments, setVisibleComments] = useState({});
 
-    const loadPosts = async () => {
+// Import reducer và initialState từ reducer.js
+import reducer, { initialState } from './reducer'; // Import cả initialState
+const Home = ({ navigation = useNavigation() }) => {
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const [nextPage, setNextPage] = useState(null);
+
+    // Load posts, reactions, and comments
+    const loadPosts = async (url = endpoints["posts"]) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             const [resPosts, resReactions, resComments] = await Promise.all([
-                APIs.get(endpoints["posts"]),
-                APIs.get("/reactions/"),
-                APIs.get("/comments/"),
+                authApis(token).get(url),
+                authApis(token).get("/reactions/"),
+                authApis(token).get("/comments/"),
             ]);
-            setData({
-                posts: resPosts.data,
-                reactions: resReactions.data,
-                comments: resComments.data,
+
+            // Loại bỏ bài viết trùng lặp
+            const allPosts = [
+                ...new Map(
+                    [...state.data.posts, ...resPosts.data.results].map((post) => [post.id, post])
+                ).values(),
+            ];
+
+            setNextPage(resPosts.data.next);
+
+            dispatch({
+                type: 'SET_DATA',
+                payload: {
+                    posts: allPosts,
+                    reactions: resReactions.data.results,
+                    comments: resComments.data.results,
+                },
             });
         } catch (error) {
             console.error("API request failed:", error);
         } finally {
-            setLoading(false);
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 
@@ -42,60 +62,124 @@ const Home = () => {
         loadPosts();
     }, []);
 
-    const calculateReactions = useMemo(() => (targetType, targetId) => {
-        const filteredReactions = data.reactions.filter(
-            (reaction) => reaction.target_type === targetType && reaction.target_id === targetId
-        );
-        return {
-            like: filteredReactions.filter((r) => r.reaction_type === "like").length,
-            haha: filteredReactions.filter((r) => r.reaction_type === "haha").length,
-            love: filteredReactions.filter((r) => r.reaction_type === "love").length,
-        };
-    }, [data.reactions]);
-
     const getCommentsForPost = useMemo(() => (postId) => {
-        const uniqueComments = data.comments
-            .filter((comment) => comment.post === postId)
-            .reduce((acc, current) => {
-                if (!acc.find((item) => item.id === current.id)) {
-                    acc.push(current);
-                }
-                return acc;
-            }, []);
-        return uniqueComments;
-    }, [data.comments]);
+        return state.data.comments.filter(comment => comment.post === postId);
+    }, [state.data.comments]);
 
+    // Toggle visibility of comments
     const toggleComments = useCallback((postId) => {
-        setVisibleComments((prev) => ({
-            ...prev,
-            [postId]: !prev[postId],
-        }));
+        dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
+
+    const handleReaction = async (targetType, targetId, reactionType) => {
+        try {
+            // Retrieve user ID and token from AsyncStorage
+            const storedUser = await AsyncStorage.getItem('user');
+            const token = await AsyncStorage.getItem('token');
+            if (!storedUser || !token) {
+                console.error("User information or token not found.");
+                return;
+            }
+            const user = JSON.parse(storedUser);
+            const userId = user.id;
+
+            // Sử dụng authApis(token) để gửi request có authentication
+            const authenticatedApis = authApis(token);
+
+            // Kiểm tra xem user đã reaction chưa
+            const existingReaction = state.data.reactions.find(
+                r => r.user.id === userId && r.target_type === targetType && r.target_id === targetId
+            );
+
+            let response;
+            if (existingReaction) {
+                if (existingReaction.reaction_type === reactionType) {
+                    // Xóa reaction (DELETE)
+                    response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
+                } else {
+                    // Cập nhật reaction (PATCH)
+                    const payload = {
+                        reaction_type: reactionType,
+                    };
+                    response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, payload);
+                }
+            } else {
+                // Tạo reaction mới (POST)
+                const payload = {
+                    target_type: targetType, // Thêm target_type vào payload
+                    target_id: targetId,
+                    reaction_type: reactionType,
+                    user: { id: userId },
+                };
+                console.log("Payload sent:", payload);
+                response = await authenticatedApis.post(endpoints.reactions, payload);
+            }
+
+            // Xử lý response và cập nhật state
+            if (response.status === 200 || response.status === 201 || response.status === 204) {
+                // Lấy thông tin summary của reactions
+                console.log("Fetching summary for:", targetType, targetId);
+                const summaryResponse = await authenticatedApis.get(
+                    `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`
+                );
+
+                if (summaryResponse.status === 200) {
+                    // Cập nhật state cho số lượng reactions của post/comment
+                    console.log("Dispatching UPDATE_POST_REACTIONS with:", {
+                        targetType: targetType,
+                        [targetType === "post" ? "postId" : "commentId"]: targetId,
+                        reactionsSummary: summaryResponse.data.reaction_summary,
+                    });
+                    dispatch({
+                        type: 'UPDATE_POST_REACTIONS',
+                        payload: {
+                            targetType: targetType,
+                            [targetType === "post" ? "postId" : "commentId"]: targetId, // Truyền đúng targetId
+                            reactionsSummary: summaryResponse.data.reaction_summary,
+                        }
+                    });
+
+                    // Cập nhật lại danh sách reactions trong state để lần gọi tiếp theo có dữ liệu đúng
+                    const resReactions = await authenticatedApis.get("/reactions/");
+                    dispatch({
+                        type: 'SET_REACTIONS',
+                        payload: resReactions.data.results,
+                    });
+                } else {
+                    console.error("Error fetching reaction summary:", summaryResponse);
+                }
+            } else {
+                console.error("Error handling reaction:", response);
+            }
+        } catch (error) {
+            console.error("Error in handleReaction:", error.response || error.message);
+        }
+    };
 
     const screenWidth = Dimensions.get("window").width;
 
-    if (loading) {
+    if (state.loading) {
         return (
-            <View style={styles.loaderContainer}>
-                <Text style={styles.loaderText}>Loading posts...</Text>
+            <View style={HomeStyles.loaderContainer}>
+                <Text style={HomeStyles.loaderText}>Loading posts...</Text>
             </View>
         );
     }
 
     const renderPost = ({ item: post }) => {
-        const postReactions = calculateReactions("post", post.id);
         const postComments = getCommentsForPost(post.id);
 
         return (
-            <View key={post.id} style={styles.postContainer}>
-                <View style={styles.postHeader}>
+            <View key={post.id} style={HomeStyles.postContainer}>
+                {/* Header của bài viết */}
+                <View style={HomeStyles.postHeader}>
                     <Avatar.Image
                         source={{ uri: post.user.avatar || "https://via.placeholder.com/150" }}
                         size={40}
                     />
-                    <View style={styles.headerDetails}>
-                        <Text style={styles.username}>{post.user.username}</Text>
-                        <Text style={styles.timeText}>
+                    <View style={HomeStyles.headerDetails}>
+                        <Text style={HomeStyles.username}>{post.user.username}</Text>
+                        <Text style={HomeStyles.timeText}>
                             {new Date(post.created_date).toLocaleTimeString()}
                         </Text>
                     </View>
@@ -104,68 +188,87 @@ const Home = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Nội dung bài viết */}
                 <RenderHtml
                     contentWidth={screenWidth}
                     source={{ html: post.content }}
-                    baseStyle={styles.postContent}
+                    baseStyle={HomeStyles.postContent}
                 />
 
+                {/* Hình ảnh của bài viết (nếu có) */}
                 {post.image && (
                     <Image
                         source={{ uri: post.image }}
-                        style={styles.postImage}
+                        style={HomeStyles.postImage}
                     />
                 )}
 
-                <View style={styles.interactionRow}>
-                    <Text style={styles.reactionText}>👍 {postReactions.like}</Text>
-                    <Text style={styles.reactionText}>😂 {postReactions.haha}</Text>
-                    <Text style={styles.reactionText}>❤️ {postReactions.love}</Text>
+                {/*  */}
+                <View style={HomeStyles.interactionRow}>
+                    {/* Các nút tương tác */}
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
+                        <Text style={HomeStyles.reactionText}>👍 {post.reaction_summary?.like || 0}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "haha")}>
+                        <Text style={HomeStyles.reactionText}>😂 {post.reaction_summary?.haha || 0}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "love")}>
+                        <Text style={HomeStyles.reactionText}>❤️ {post.reaction_summary?.love || 0}</Text>
+                    </TouchableOpacity>
+                    {/* Nút toggle comments */}
                     <TouchableOpacity
-                        style={styles.interactionButton}
+                        style={HomeStyles.interactionButton}
                         onPress={() => toggleComments(post.id)}
                     >
                         <Ionicons name="chatbubble-outline" size={20} color="#333" />
-                        <Text style={styles.reactionText}>
+                        <Text style={HomeStyles.reactionText}>
                             {postComments.length}
                         </Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.interactionButton}>
+                    <TouchableOpacity style={HomeStyles.interactionButton}>
                         <Ionicons name="share-outline" size={20} color="#333" />
                     </TouchableOpacity>
                 </View>
 
-                {visibleComments[post.id] && (
-                    <View style={styles.comments}>
+                {/* Hiển thị comments nếu visibleComments của post đó là true */}
+                {state.visibleComments[post.id] && (
+                    <View style={HomeStyles.comments}>
                         {postComments.map((comment) => {
-                            const commentReactions = calculateReactions("comment", comment.id);
-
                             return (
-                                <View key={comment.id} style={styles.comment}>
+                                <View key={comment.id} style={HomeStyles.comment}>
+                                    {/* Avatar của người comment */}
                                     <Avatar.Image
-                                        source={{ uri: "https://via.placeholder.com/150" }}
+                                        source={{ uri: comment.user?.avatar || "https://via.placeholder.com/150" }}
                                         size={30}
-                                        style={styles.commentAvatar}
+                                        style={HomeStyles.commentAvatar}
                                     />
+                                    {/* Nội dung comment */}
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.commentUsername}>
+                                        <Text style={HomeStyles.commentUsername}>
                                             {comment.user || "Anonymous"}
                                         </Text>
                                         <RenderHtml
                                             contentWidth={screenWidth}
                                             source={{ html: comment.content }}
-                                            baseStyle={styles.commentContent}
+                                            baseStyle={HomeStyles.commentContent}
                                         />
-                                        <View style={styles.reactionRow}>
-                                            <Text style={styles.reactionText}>
-                                                👍 {commentReactions.like}
-                                            </Text>
-                                            <Text style={styles.reactionText}>
-                                                😂 {commentReactions.haha}
-                                            </Text>
-                                            <Text style={styles.reactionText}>
-                                                ❤️ {commentReactions.love}
-                                            </Text>
+                                        {/* Các nút tương tác cho comment */}
+                                        <View style={HomeStyles.reactionRow}>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "like")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    👍 {comment.reaction_summary?.like || 0}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "haha")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    😂 {comment.reaction_summary?.haha || 0}
+                                                </Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "love")}>
+                                                <Text style={HomeStyles.reactionText}>
+                                                    ❤️ {comment.reaction_summary?.love || 0}
+                                                </Text>
+                                            </TouchableOpacity>
                                         </View>
                                     </View>
                                 </View>
@@ -178,161 +281,27 @@ const Home = () => {
     };
 
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.appName}>SocialApp</Text>
+        <View style={HomeStyles.container}>
+            <View style={HomeStyles.header}>
+                <Text style={HomeStyles.appName}>SocialApp</Text>
             </View>
 
-            {/* Posts List */}
             <FlatList
-                data={data.posts}
+                data={state.data.posts || []}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderPost}
+                showsVerticalScrollIndicator={false}
+                onEndReached={() => {
+                    if (nextPage) {
+                        loadPosts(nextPage);
+                    }
+                }}
+                onEndReachedThreshold={0.5}
             />
 
-            {/* Bottom Navigation Bar */}
-            <View style={styles.navbar}>
-                <TouchableOpacity style={styles.navItem}>
-                    <Ionicons name="home-outline" size={28} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <Ionicons name="search-outline" size={28} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItemCenter}>
-                    <View style={styles.addButton}>
-                        <Ionicons name="add" size={32} color="#FFF" />
-                    </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <Ionicons name="notifications-outline" size={28} color="#000" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
-                    <Ionicons name="person-outline" size={28} color="#000" />
-                </TouchableOpacity>
-            </View>
+            <Navbar navigation={navigation} />
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#FAFAFA",
-    },
-    header: {
-        justifyContent: "center", 
-        alignItems: "center", 
-        padding: 15,
-        backgroundColor: "#FFF",
-        elevation: 3,
-    },
-    appName: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#333",
-    },
-    navbar: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        paddingVertical: 10,
-        backgroundColor: "#FFF",
-        borderTopWidth: 1,
-        borderTopColor: "#DDD",
-    },
-    navItem: {
-        alignItems: "center",
-    },
-    navItemCenter: {
-        alignItems: "center",
-        marginTop: -25,
-    },
-    addButton: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: "#007AFF",
-        justifyContent: "center",
-        alignItems: "center",
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    postContainer: {
-        margin: 10,
-        backgroundColor: "#FFF",
-        borderRadius: 10,
-        padding: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    postHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    headerDetails: {
-        flex: 1,
-        marginLeft: 10,
-    },
-    username: {
-        fontWeight: "bold",
-        fontSize: 14,
-    },
-    timeText: {
-        fontSize: 12,
-        color: "#777",
-    },
-    postContent: {
-        fontSize: 14,
-        color: "#333",
-    },
-    postImage: {
-        width: "100%",
-        height: 200,
-        borderRadius: 10,
-        marginTop: 10,
-    },
-    interactionRow: {
-        flexDirection: "row",
-        justifyContent: "space-evenly",
-        marginTop: 10,
-    },
-    interactionButton: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    reactionText: {
-        marginLeft: 5,
-        fontSize: 14,
-    },
-    comments: {
-        marginTop: 15,
-        paddingLeft: 15,
-    },
-    comment: {
-        flexDirection: "row",
-        alignItems: "flex-start",
-        marginBottom: 12,
-    },
-    commentAvatar: {
-        marginRight: 10,
-    },
-    commentUsername: {
-        fontWeight: "bold",
-        fontSize: 14,
-        color: "#333",
-    },
-    commentContent: {
-        color: "#555",
-        fontSize: 14,
-    },
-    reactionRow: {
-        flexDirection: "row",
-        marginTop: 5,
-    },
-});
 
 export default Home;

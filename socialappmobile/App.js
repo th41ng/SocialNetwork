@@ -9,20 +9,18 @@ import EditProfileScreen from './components/Profile/EditProfile';
 import UserSecurityScreen from './components/Profile/UserSecurity';
 import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
+import HomeScreen from './components/Home/Home';
+import CreatePost from './components/Home/CreatePost';  
 
 const Stack = createStackNavigator();
 
 export default function App() {
-  // Initial state for the user context
   const initialState = null;
-
-  // Create a reducer for managing user state
   const [user, dispatch] = useReducer(MyUserReducer, initialState);
 
   return (
     <PaperProvider>
       <NavigationContainer>
-        {/* Wrap navigation in context providers */}
         <MyUserContext.Provider value={user}>
           <MyDispatchContext.Provider value={dispatch}>
             <Stack.Navigator initialRouteName="Login">
@@ -31,6 +29,16 @@ export default function App() {
               <Stack.Screen name="UserProfile" component={ProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="UserSecurity" component={UserSecurityScreen} options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="Home" 
+                component={HomeScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="CreatePost" 
+                component={CreatePost} 
+                options={{ headerShown: false }} 
+              />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>
