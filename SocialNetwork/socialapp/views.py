@@ -1,4 +1,9 @@
 from django.db.models import Count
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import cloudinary
+import cloudinary.uploader
 
 from django.db.models.functions import TruncYear, ExtractQuarter, TruncMonth
 
@@ -12,7 +17,7 @@ from rest_framework.views import APIView
 
 from .models import Reaction, Comment, Survey, SurveyResponse, SurveyQuestion, SurveyOption, Role
 from .serializers import ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer, \
-    RoleSerializer
+    RoleSerializer, UserSerializer
 
 from rest_framework.exceptions import PermissionDenied
 
@@ -25,53 +30,42 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q
 
-class UserViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
+class UserViewSet(viewsets.ModelViewSet):
     """
     Xử lý API cho User.
     """
     queryset = User.objects.all()
-    serializer_class = UserRegistrationSerializer
+    serializer_class = UserSerializer  # Thay đổi thành UserSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         """
         Cung cấp quyền truy cập cho các phương thức khác nhau.
         """
-        if self.action in ['get_current_user']:
+        if self.action in ['get_current_user', 'update_user']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
-    @action(methods=['post'], url_path='update-password', detail=False)
-    def update_password(self, request):
+    @action(detail=False, methods=['get'], url_path='current', permission_classes=[permissions.IsAuthenticated])
+    def get_current_user(self, request):
         """
-        Đổi mật khẩu cho người dùng hiện tại.
+        Lấy thông tin người dùng hiện tại.
         """
-        serializer = UpdatePasswordSerializer(data=request.data, context={'request': request})
+        user = request.user
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=['patch'], url_path='update', permission_classes=[permissions.IsAuthenticated])
+    def update_user(self, request):
+        """
+        Cập nhật thông tin người dùng hiện tại.
+        """
+        user = request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Mật khẩu đã được thay đổi."}, status=200)
-        return Response(serializer.errors, status=400)
-
-    @action(methods=['post'], url_path='reset-password-deadline', detail=True)
-    def reset_password_deadline(self, request, pk=None):
-        """
-        Reset thời gian đổi mật khẩu và mở lại tài khoản bị khóa (dành cho Admin).
-        """
-        try:
-            user = User.objects.get(pk=self.kwargs['pk'])  # Tìm người dùng theo ID
-        except User.DoesNotExist:
-            return Response({"error": "User not found."}, status=404)
-
-        if not user.is_active:
-            user.is_active = True
-            user.password_reset_deadline = timezone.now() + timedelta(days=1)  # Reset deadline
-            user.save()
-            return Response({
-                "message": f"Đã reset thời gian đổi mật khẩu cho người dùng {user.username}. Tài khoản đã được mở lại."
-            }, status=200)
-
-        return Response({"error": "Tài khoản này chưa bị khoá hoặc không cần reset."}, status=400)
+            serializer.save()  # Cập nhật người dùng
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -551,4 +545,21 @@ class StatisticsView(APIView):
             ]
 
         return Response({"data": formatted_data})
+
+
+class UploadImageView(APIView):
+    def post(self, request, format=None):
+        image_data = request.data.get('image')
+
+        if not image_data:
+            return Response({"detail": "No image provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Upload ảnh từ Base64 lên Cloudinary
+            upload_result = cloudinary.uploader.upload(image_data, use_filename=True, unique_filename=False)
+            image_url = upload_result['secure_url']  # URL ảnh đã upload lên Cloudinary
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"image_url": image_url}, status=status.HTTP_201_CREATED)
 
