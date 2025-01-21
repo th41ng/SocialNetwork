@@ -10,7 +10,7 @@ export const endpoints = {
     getRoles: "/roles/",
     posts: "/posts/",
     create_post: "/posts/", // Thêm endpoint cho tạo bài viết
-    create_reaction: '/reactions/',
+    reactions: "/reactions/",
 };
 
 export const authApis = (token) => {

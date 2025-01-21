@@ -1,6 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useContext, useState } from "react";
-import { KeyboardAvoidingView, Platform, Text, TouchableOpacity, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
 import { Button, TextInput } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import { MyDispatchContext } from "../../configs/UserContext";
@@ -13,7 +20,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const dispatch = useContext(MyDispatchContext); // Lấy dispatch từ context
+  const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
 
   const login = async () => {
@@ -35,7 +42,7 @@ const Login = () => {
       const res = await APIs.post(endpoints["login"], formData, { headers });
 
       if (!res.data.access_token) {
-        alert("Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
+        Alert.alert("Lỗi đăng nhập", "Vui lòng kiểm tra thông tin đăng nhập.");
         return;
       }
 
@@ -43,82 +50,69 @@ const Login = () => {
       await AsyncStorage.setItem("token", res.data.access_token);
 
       const token = await AsyncStorage.getItem("token");
-      const userResponse = await authApis(token).get(endpoints["profile"]);
-      const userData = userResponse.data.user; // Lấy dữ liệu user
+      try {
+        const userResponse = await authApis(token).get(endpoints["profile"]);
 
-      console.log("userdata:", userData); // Kiểm tra dữ liệu trả về từ API
+        // *** KIỂM TRA RESPONSE TỪ API /profile ***
+        console.log("Response từ API /profile:", JSON.stringify(userResponse, null, 2)); // Log response với format đẹp hơn
 
-      const role = userData.role; // Lấy role từ phản hồi API
-      const isCheck = userData.student_id_verified;
+        if (!userResponse || !userResponse.data || !userResponse.data.user) {
+          console.error("Response từ API /profile không hợp lệ:", userResponse);
+          Alert.alert("Lỗi đăng nhập", "Lỗi dữ liệu từ máy chủ. Vui lòng liên hệ quản trị viên.");
+          return;
+        }
 
-      // Kiểm tra thông tin sinh viên và xác thực mật khẩu
-      const password_reset_deadline = new Date(userData.password_reset_deadline);
-      const currentTime = new Date();
-      const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60); // Tính thời gian chênh lệch (giờ)
-      console.log("Chênh lệch thời gian đổi mật khẩu:", timeDifference);
+        const userData = userResponse.data.user;
 
-      if (timeDifference > 24) {
-        alert("Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên để gia hạn thời gian đổi mật khẩu.");
+        if (!userData.id) {
+          console.error("Dữ liệu user trả về không có id:", userData);
+          Alert.alert("Lỗi đăng nhập", "Dữ liệu người dùng bị thiếu ID. Vui lòng liên hệ quản trị viên.");
+          return;
+        }
+
+        console.log("userData (sau khi kiểm tra):", userData);
+
+        // Kiểm tra thông tin sinh viên và xác thực mật khẩu (nếu có)
+        if(userData.password_reset_deadline){
+            const password_reset_deadline = new Date(userData.password_reset_deadline);
+            const currentTime = new Date();
+            const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
+
+            if (timeDifference > 24) {
+                Alert.alert("Lỗi", "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên.");
+                await AsyncStorage.removeItem("token");
+                return;
+            }
+        }
+
+
+        if (userData.student_id_verified === false && userData.role !== "Giảng viên") {
+          Alert.alert("Lỗi", "Tài khoản chưa được xác thực mã sinh viên. Vui lòng liên hệ với quản trị viên.");
+          await AsyncStorage.removeItem("token");
+          return;
+        }
+
+        // *** LƯU DỮ LIỆU VÀO ASYNCSTORAGE ***
+        try {
+          await AsyncStorage.setItem('user', JSON.stringify(userData));
+          console.log('Đã lưu thông tin người dùng vào AsyncStorage:', userData);
+        } catch (error) {
+          console.error('Lỗi khi lưu thông tin người dùng vào AsyncStorage:', error);
+          Alert.alert("Lỗi", "Đã có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại sau.");
+          return;
+        }
+
+        dispatch({ type: "login", payload: userData });
+        navigation.navigate("UserProfile");
+      } catch (profileError) {
+        console.error("Lỗi khi gọi API /profile:", profileError);
+        Alert.alert("Lỗi đăng nhập", "Không thể lấy thông tin người dùng. Vui lòng thử lại.");
         await AsyncStorage.removeItem("token");
         return;
       }
-
-      if (isCheck === false && role !== "Giảng viên") {
-        alert("Tài khoản chưa được xác thực mã sinh viên. Vui lòng liên hệ với quản trị viên.");
-        await AsyncStorage.removeItem("token");
-        return;
-      }
-      console.log("Dữ liệu user:", userData);
-
-      const defaultAvatar = "URL_avatar_mặc_định"; // Thay thế bằng URL avatar mặc định của bạn
-      await AsyncStorage.setItem("avatar", userData.avatar || defaultAvatar);
-      console.log("Đã lưu avatar:", userData.avatar || defaultAvatar);
-
-      await AsyncStorage.setItem("student_id", userData.student_id);
-      console.log("Đã lưu student_id:", userData.student_id);
-
-      // Lưu thông tin vào AsyncStorage (có giá trị mặc định nếu thiếu)
-      await AsyncStorage.setItem("username", userData.username);
-      console.log("Đã lưu username:", userData.username);
-
-      await AsyncStorage.setItem("email", userData.email);
-      console.log("Đã lưu email:", userData.email);
-
-      await AsyncStorage.setItem("phone_number", userData.phone_number);
-      console.log("Đã lưu phone_number:", userData.phone_number);
-
-      await AsyncStorage.setItem("cover_image", userData.cover_image || "");
-      console.log("Đã lưu cover_image:", userData.cover_image || "");
-
-      await AsyncStorage.setItem("student_id_verified", userData.student_id_verified.toString());
-      console.log("Đã lưu student_id_verified:", userData.student_id_verified);
-
-      // Kiểm tra lại dữ liệu đã lưu
-      const savedData = {
-        username: await AsyncStorage.getItem("username"),
-        email: await AsyncStorage.getItem("email"),
-        phone_number: await AsyncStorage.getItem("phone_number"),
-        avatar: await AsyncStorage.getItem("avatar"),
-        student_id: await AsyncStorage.getItem("student_id"),
-      };
-      console.log("Thông tin đã lưu vào AsyncStorage:", savedData);
-
-      dispatch({
-        type: "login",
-        payload: {
-          username: userData.username,
-          email: userData.email,
-          phone_number: userData.phone_number,
-          role: userData.role,
-          avatar: userData.avatar || defaultAvatar,
-          cover_image: userData.cover_image || "",
-        },
-      });
-      // Chuyển hướng sau khi đã lưu tất cả dữ liệu vào AsyncStorage
-      navigation.navigate("UserProfile");
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Đăng nhập thất bại. Vui lòng thử lại.");
+    } catch (loginError) {
+      console.error("Login error:", loginError);
+      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -129,7 +123,8 @@ const Login = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={AuthStyle.container}
     >
-      <TextInput
+      {/* ... (JSX - không thay đổi) */}
+       <TextInput
         label="Tên đăng nhập"
         value={username}
         onChangeText={setUsername}
@@ -146,20 +141,11 @@ const Login = () => {
         mode="outlined"
         right={<TextInput.Icon icon="eye" />}
       />
-      <Button
-        onPress={login}
-        loading={loading}
-        style={AuthStyle.button}
-        icon="login"
-        mode="contained"
-      >
+      <Button onPress={login} loading={loading} style={AuthStyle.button} icon="login" mode="contained">
         Đăng nhập
       </Button>
 
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Register")}
-        style={AuthStyle.link}
-      >
+      <TouchableOpacity onPress={() => navigation.navigate("Register")} style={AuthStyle.link}>
         <Text style={AuthStyle.linkText}>Chưa có tài khoản? Đăng ký ngay</Text>
       </TouchableOpacity>
     </KeyboardAvoidingView>

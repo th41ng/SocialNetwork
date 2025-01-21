@@ -15,7 +15,7 @@ import HomeStyles from "./HomeStyles";
 import { useNavigation } from "@react-navigation/native";
 import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 // Initial state
 const initialState = {
     data: { posts: [], reactions: [], comments: [] },
@@ -113,24 +113,74 @@ const Home = ({ navigation = useNavigation() }) => {
         dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
 
+    
+
     const handleReaction = async (targetType, targetId, reactionType) => {
         try {
-            const response = await APIs.post(endpoints["reactions"], {
+            // Retrieve user ID from AsyncStorage
+            const storedUser = await AsyncStorage.getItem('user');
+            if (!storedUser) {
+                console.error("User information not found.");
+                return;
+            }
+            const user = JSON.parse(storedUser);
+            const userId = user.id;
+    
+            // Retrieve token from AsyncStorage
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                console.error("Token not found.");
+                return;
+            }
+    
+            // Prepare payload with the user ID in the correct structure
+            const payload = {
                 target_type: targetType,
                 target_id: targetId,
                 reaction_type: reactionType,
-            });
-
-            if (response.status === 201) {
-                dispatch({
-                    type: 'ADD_REACTION',
-                    payload: response.data,
-                });
+                user: { id: userId }, // Ensure user is an object with the ID
+            };
+    
+            console.log("Payload sent:", payload);
+    
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            };
+    
+            // Make the API request
+            const response = await APIs.post(endpoints.reactions, payload, { headers });
+    
+            // Check response status
+            if (response.status === 200 || response.status === 201) {
+                const summaryResponse = await APIs.get(
+                    `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`,
+                    { headers }
+                );
+    
+                if (summaryResponse.status === 200) {
+                    dispatch({
+                        type: "UPDATE_REACTION_COUNT",
+                        payload: {
+                            postId: targetId,
+                            reactionType: reactionType,
+                            count: summaryResponse.data.reaction_summary[reactionType] || 0,
+                        },
+                    });
+                } else {
+                    console.error("Error fetching reaction summary:", summaryResponse);
+                }
+            } else {
+                console.error("Error adding reaction:", response);
+                // Optional: Retry logic or alert to the user
             }
         } catch (error) {
-            console.error("Error adding reaction:", error);
+            console.error("Error in handleReaction:", error.response || error.message);
+            // Optional: Additional error handling (e.g., user notification)
         }
     };
+    
+      
 
     const screenWidth = Dimensions.get("window").width;
 
