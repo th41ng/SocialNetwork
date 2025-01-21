@@ -11,6 +11,7 @@ export const endpoints = {
     posts: "/posts/",
     create_post: "/posts/", // Thêm endpoint cho tạo bài viết
     reactions: "/reactions/",
+    
 };
 
 export const authApis = (token) => {

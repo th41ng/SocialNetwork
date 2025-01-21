@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // Initial state
 const initialState = {
     data: { posts: [], reactions: [], comments: [] },
@@ -23,33 +24,8 @@ const initialState = {
     visibleComments: {},
 };
 
-// Reducer function
-const reducer = (state, action) => {
-    switch (action.type) {
-        case 'SET_DATA':
-            return { ...state, data: action.payload, loading: false };
-        case 'SET_LOADING':
-            return { ...state, loading: action.payload };
-        case 'TOGGLE_COMMENTS':
-            return {
-                ...state,
-                visibleComments: {
-                    ...state.visibleComments,
-                    [action.payload]: !state.visibleComments[action.payload],
-                },
-            };
-        case 'ADD_REACTION':
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    reactions: [...state.data.reactions, action.payload],
-                }
-            };
-        default:
-            return state;
-    }
-};
+// Reducer function (reducer.js) - Đã chuyển nội dung reducer sang file reducer.js
+import reducer from './reducer'; // Giả sử bạn đã tạo file reducer.js
 
 const Home = ({ navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
@@ -92,17 +68,17 @@ const Home = ({ navigation = useNavigation() }) => {
         loadPosts();
     }, []);
 
-    // Tính toán reactions cho bài viết hoặc bình luận
-    const calculateReactions = useMemo(() => (targetType, targetId) => {
-        const filteredReactions = state.data.reactions.filter(
-            (reaction) => reaction.target_type === targetType && reaction.target_id === targetId
-        );
-        return {
-            like: filteredReactions.filter((r) => r.reaction_type === "like").length,
-            haha: filteredReactions.filter((r) => r.reaction_type === "haha").length,
-            love: filteredReactions.filter((r) => r.reaction_type === "love").length,
-        };
-    }, [state.data.reactions]);
+    // Tính toán reactions cho bài viết hoặc bình luận (không còn cần dùng nữa)
+    // const calculateReactions = useMemo(() => (targetType, targetId) => {
+    //     const filteredReactions = state.data.reactions.filter(
+    //         (reaction) => reaction.target_type === targetType && reaction.target_id === targetId
+    //     );
+    //     return {
+    //         like: filteredReactions.filter((r) => r.reaction_type === "like").length,
+    //         haha: filteredReactions.filter((r) => r.reaction_type === "haha").length,
+    //         love: filteredReactions.filter((r) => r.reaction_type === "love").length,
+    //     };
+    // }, [state.data.reactions]);
 
     const getCommentsForPost = useMemo(() => (postId) => {
         return state.data.comments.filter(comment => comment.post === postId);
@@ -113,74 +89,87 @@ const Home = ({ navigation = useNavigation() }) => {
         dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
 
-    
-
     const handleReaction = async (targetType, targetId, reactionType) => {
         try {
-            // Retrieve user ID from AsyncStorage
+            // Retrieve user ID and token from AsyncStorage
             const storedUser = await AsyncStorage.getItem('user');
-            if (!storedUser) {
-                console.error("User information not found.");
+            const token = await AsyncStorage.getItem('token');
+            if (!storedUser || !token) {
+                console.error("User information or token not found.");
                 return;
             }
             const user = JSON.parse(storedUser);
             const userId = user.id;
-    
-            // Retrieve token from AsyncStorage
-            const token = await AsyncStorage.getItem('token');
-            if (!token) {
-                console.error("Token not found.");
-                return;
-            }
-    
-            // Prepare payload with the user ID in the correct structure
-            const payload = {
-                target_type: targetType,
-                target_id: targetId,
-                reaction_type: reactionType,
-                user: { id: userId }, // Ensure user is an object with the ID
-            };
-    
-            console.log("Payload sent:", payload);
-    
+
             const headers = {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             };
-    
-            // Make the API request
-            const response = await APIs.post(endpoints.reactions, payload, { headers });
-    
-            // Check response status
-            if (response.status === 200 || response.status === 201) {
+
+            // Kiểm tra xem user đã reaction chưa
+            const existingReaction = state.data.reactions.find(
+                r => r.user.id === userId && r.target_type === targetType && r.target_id === targetId
+            );
+
+            let response;
+            if (existingReaction) {
+                if (existingReaction.reaction_type === reactionType) {
+                    // Xóa reaction (DELETE)
+                    response = await APIs.delete(`${endpoints.reactions}${existingReaction.id}/`, { headers });
+                } else {
+                    // Cập nhật reaction (PATCH)
+                    const payload = {
+                        reaction_type: reactionType,
+                    };
+                    response = await APIs.patch(`${endpoints.reactions}${existingReaction.id}/`, payload, { headers });
+                }
+            } else {
+                // Tạo reaction mới (POST)
+                const payload = {
+                    target_type: targetType,
+                    target_id: targetId,
+                    reaction_type: reactionType,
+                    user: { id: userId },
+                };
+                console.log("Payload sent:", payload);
+                response = await APIs.post(endpoints.reactions, payload, { headers });
+            }
+
+            // Xử lý response và cập nhật state
+            if (response.status === 200 || response.status === 201 || response.status === 204) {
+                // Lấy thông tin summary của reactions
                 const summaryResponse = await APIs.get(
                     `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`,
                     { headers }
                 );
-    
+
                 if (summaryResponse.status === 200) {
+                    // Cập nhật state cho số lượng reactions của post/comment
                     dispatch({
-                        type: "UPDATE_REACTION_COUNT",
+                        type: 'UPDATE_POST_REACTIONS',
                         payload: {
                             postId: targetId,
-                            reactionType: reactionType,
-                            count: summaryResponse.data.reaction_summary[reactionType] || 0,
-                        },
+                            reactionsSummary: summaryResponse.data.reaction_summary,
+                            targetType: targetType
+                        }
+                    });
+
+                    // Cập nhật lại danh sách reactions trong state để lần gọi tiếp theo có dữ liệu đúng
+                    const resReactions = await APIs.get("/reactions/");
+                    dispatch({
+                        type: 'SET_REACTIONS',
+                        payload: resReactions.data.results,
                     });
                 } else {
                     console.error("Error fetching reaction summary:", summaryResponse);
                 }
             } else {
-                console.error("Error adding reaction:", response);
-                // Optional: Retry logic or alert to the user
+                console.error("Error handling reaction:", response);
             }
         } catch (error) {
             console.error("Error in handleReaction:", error.response || error.message);
-            // Optional: Additional error handling (e.g., user notification)
         }
     };
-    
-      
 
     const screenWidth = Dimensions.get("window").width;
 
@@ -193,7 +182,7 @@ const Home = ({ navigation = useNavigation() }) => {
     }
 
     const renderPost = ({ item: post }) => {
-        const postReactions = calculateReactions("post", post.id);
+        // const postReactions = calculateReactions("post", post.id); // Không cần dùng nữa
         const postComments = getCommentsForPost(post.id);
 
         return (
@@ -229,13 +218,16 @@ const Home = ({ navigation = useNavigation() }) => {
 
                 <View style={HomeStyles.interactionRow}>
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
-                        <Text style={HomeStyles.reactionText}>👍 {postReactions.like}</Text>
+                        {/* Hiển thị reaction_summary từ post */}
+                        <Text style={HomeStyles.reactionText}>👍 {post.reaction_summary?.like || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "haha")}>
-                        <Text style={HomeStyles.reactionText}>😂 {postReactions.haha}</Text>
+                        {/* Hiển thị reaction_summary từ post */}
+                        <Text style={HomeStyles.reactionText}>😂 {post.reaction_summary?.haha || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "love")}>
-                        <Text style={HomeStyles.reactionText}>❤️ {postReactions.love}</Text>
+                        {/* Hiển thị reaction_summary từ post */}
+                        <Text style={HomeStyles.reactionText}>❤️ {post.reaction_summary?.love || 0}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={HomeStyles.interactionButton}
@@ -254,7 +246,7 @@ const Home = ({ navigation = useNavigation() }) => {
                 {state.visibleComments[post.id] && (
                     <View style={HomeStyles.comments}>
                         {postComments.map((comment) => {
-                            const commentReactions = calculateReactions("comment", comment.id);
+                            // const commentReactions = calculateReactions("comment", comment.id); // Không cần dùng nữa
 
                             return (
                                 <View key={comment.id} style={HomeStyles.comment}>
@@ -273,14 +265,15 @@ const Home = ({ navigation = useNavigation() }) => {
                                             baseStyle={HomeStyles.commentContent}
                                         />
                                         <View style={HomeStyles.reactionRow}>
+                                            {/* Hiển thị reaction_summary từ comment */}
                                             <Text style={HomeStyles.reactionText}>
-                                                👍 {commentReactions.like}
+                                                👍 {comment.reaction_summary?.like || 0}
                                             </Text>
                                             <Text style={HomeStyles.reactionText}>
-                                                😂 {commentReactions.haha}
+                                                😂 {comment.reaction_summary?.haha || 0}
                                             </Text>
                                             <Text style={HomeStyles.reactionText}>
-                                                ❤️ {commentReactions.love}
+                                                ❤️ {comment.reaction_summary?.love || 0}
                                             </Text>
                                         </View>
                                     </View>
