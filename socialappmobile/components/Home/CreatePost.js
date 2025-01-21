@@ -9,12 +9,11 @@ const CreatePost = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([
-    { id: 1, name: "status" },
+    { id: 1, name: "Trạng thái" },
     { id: 2, name: "Công nghệ" },
-    // Bạn có thể thêm nhiều thể loại khác nếu cần
   ]);
   const [visible, setVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(1); // Lưu ID của category, ban đầu là 1
+  const [selectedCategory, setSelectedCategory] = useState(1); // Mặc định là ID 1
   const navigation = useNavigation();
 
   const openMenu = () => setVisible(true);
@@ -23,22 +22,39 @@ const CreatePost = () => {
   const handlePost = async () => {
     try {
       setLoading(true);
-  
+
       // Lấy token từ AsyncStorage
       const token = await AsyncStorage.getItem("token");
-  
       if (!token) {
         Alert.alert("Thông báo", "Vui lòng đăng nhập trước khi đăng bài!");
         return;
       }
-  
-      // Lấy các thông tin của người dùng từ AsyncStorage
-      const username = await AsyncStorage.getItem("username");
-      const email = await AsyncStorage.getItem("email");
-      const phone_number = await AsyncStorage.getItem("phone_number");
-      const avatar = await AsyncStorage.getItem("avatar");
-      const student_id = await AsyncStorage.getItem("student_id");
-  
+
+      // Kiểm tra nội dung bài viết và danh mục
+      if (!content.trim()) {
+        Alert.alert("Thông báo", "Nội dung bài viết không được để trống!");
+        return;
+      }
+
+      if (!selectedCategory) {
+        Alert.alert("Thông báo", "Vui lòng chọn danh mục!");
+        return;
+      }
+
+      // Lấy thông tin cần thiết từ AsyncStorage
+      const userInfoKeys = [
+        "username",
+        "email",
+        "phone_number",
+        "avatar",
+        "student_id",
+        "cover_image",
+      ];
+      const userInfo = await Promise.all(
+        userInfoKeys.map((key) => AsyncStorage.getItem(key))
+      );
+      const [username, email, phone_number, avatar, student_id, cover_image] = userInfo;
+
       if (!username || !email || !phone_number || !avatar || !student_id) {
         Alert.alert(
           "Thông báo",
@@ -47,40 +63,35 @@ const CreatePost = () => {
         navigation.navigate("Login");
         return;
       }
-  
-      // Cấu trúc dữ liệu gửi lên API với category_id thay vì category object
+
+      // Cấu trúc dữ liệu gửi lên API
       const data = {
         user: {
           avatar,
-          cover_image: (await AsyncStorage.getItem("cover_image")) || "", // Nếu không có cover image thì truyền rỗng
+          cover_image: cover_image || "",
           phone_number,
           student_id,
         },
-        category: selectedCategory, // Gửi ID của category, không phải đối tượng category
+        category: selectedCategory,
         content,
-        visibility: "public", // Cài đặt mặc định visibility là "public"
-        is_comment_locked: false, // Cài đặt mặc định is_comment_locked là false
+        visibility: "public",
+        is_comment_locked: false,
       };
-  
+
       console.log("Dữ liệu gửi lên API:", data);
-  
-      // Gửi POST request lên API
+
+      // Gửi yêu cầu POST đến API
       const res = await authApis(token).post(endpoints["create_post"], data);
       console.log("Full response:", res);
-  
-      // Kiểm tra response từ server
+
       if (res.status === 201) {
         Alert.alert("Thông báo", "Đăng bài thành công!");
-        // Chuyển về Home và truyền thông tin để làm mới dữ liệu bài viết
         navigation.navigate("Home", { refreshPosts: true });
       } else {
         Alert.alert("Thông báo", "Đăng bài thất bại. Vui lòng thử lại!");
       }
     } catch (error) {
-      console.error(
-        "Lỗi khi đăng bài:",
-        error.response?.data || error.message || error
-      );
+      console.error("Lỗi khi đăng bài:", error.response?.data || error.message || error);
       let errorMessage = "Lỗi không xác định.";
       if (error.response) {
         if (error.response.data) {
@@ -98,7 +109,7 @@ const CreatePost = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <Provider>
       <ScrollView contentContainerStyle={styles.container}>
@@ -124,7 +135,7 @@ const CreatePost = () => {
                 onPress={openMenu}
                 style={styles.menuButton}
               >
-                {categories.find(cat => cat.id === selectedCategory)?.name || "Chọn danh mục"}
+                {categories.find((cat) => cat.id === selectedCategory)?.name || "Chọn danh mục"}
               </Button>
             }
           >
@@ -133,7 +144,7 @@ const CreatePost = () => {
                 key={cat.id}
                 title={cat.name}
                 onPress={() => {
-                  setSelectedCategory(cat.id); // Lưu ID của category
+                  setSelectedCategory(cat.id);
                   closeMenu();
                 }}
               />
@@ -179,10 +190,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "bold",
-
     marginBottom: 8,
-
-
   },
 });
 
