@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useReducer, useState } from "react";
 import {
     Text,
     View,
@@ -12,32 +12,79 @@ import { MaterialIcons } from "@expo/vector-icons";
 import APIs, { endpoints } from "../../configs/APIs";
 import RenderHtml from "react-native-render-html";
 import HomeStyles from "./HomeStyles";
-import { useNavigation } from "@react-navigation/native";  
-import Navbar from "../Home/Navbar"; 
+import { useNavigation } from "@react-navigation/native";
+import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 
-const Home = () => {
-    const [data, setData] = useState({ posts: [], reactions: [], comments: [] });
-    const [loading, setLoading] = useState(true);
-    const [visibleComments, setVisibleComments] = useState({});
-    const navigation = useNavigation();  
+// Initial state
+const initialState = {
+    data: { posts: [], reactions: [], comments: [] },
+    loading: true,
+    visibleComments: {},
+};
 
-    const loadPosts = async () => {
+// Reducer function
+const reducer = (state, action) => {
+    switch (action.type) {
+        case 'SET_DATA':
+            return { ...state, data: action.payload, loading: false };
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        case 'TOGGLE_COMMENTS':
+            return {
+                ...state,
+                visibleComments: {
+                    ...state.visibleComments,
+                    [action.payload]: !state.visibleComments[action.payload],
+                },
+            };
+        case 'ADD_REACTION':
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    reactions: [...state.data.reactions, action.payload],
+                }
+            };
+        default:
+            return state;
+    }
+};
+
+const Home = ({ navigation = useNavigation() }) => {
+    const [state, dispatch] = useReducer(reducer, initialState);
+    const [nextPage, setNextPage] = useState(null);
+
+    // Load posts, reactions, and comments
+    const loadPosts = async (url = endpoints["posts"]) => {
         try {
             const [resPosts, resReactions, resComments] = await Promise.all([
-                APIs.get(endpoints["posts"]),
+                APIs.get(url),
                 APIs.get("/reactions/"),
                 APIs.get("/comments/"),
             ]);
-            setData({
-                posts: resPosts.data,
-                reactions: resReactions.data,
-                comments: resComments.data,
+
+            // Loại bỏ bài viết trùng lặp
+            const allPosts = [
+                ...new Map(
+                    [...state.data.posts, ...resPosts.data.results].map((post) => [post.id, post])
+                ).values(),
+            ];
+
+            setNextPage(resPosts.data.next);
+
+            dispatch({
+                type: 'SET_DATA',
+                payload: {
+                    posts: allPosts,
+                    reactions: resReactions.data.results,
+                    comments: resComments.data.results,
+                },
             });
         } catch (error) {
             console.error("API request failed:", error);
         } finally {
-            setLoading(false);
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 
@@ -45,8 +92,9 @@ const Home = () => {
         loadPosts();
     }, []);
 
+    // Tính toán reactions cho bài viết hoặc bình luận
     const calculateReactions = useMemo(() => (targetType, targetId) => {
-        const filteredReactions = data.reactions.filter(
+        const filteredReactions = state.data.reactions.filter(
             (reaction) => reaction.target_type === targetType && reaction.target_id === targetId
         );
         return {
@@ -54,30 +102,39 @@ const Home = () => {
             haha: filteredReactions.filter((r) => r.reaction_type === "haha").length,
             love: filteredReactions.filter((r) => r.reaction_type === "love").length,
         };
-    }, [data.reactions]);
+    }, [state.data.reactions]);
 
     const getCommentsForPost = useMemo(() => (postId) => {
-        const uniqueComments = data.comments
-            .filter((comment) => comment.post === postId)
-            .reduce((acc, current) => {
-                if (!acc.find((item) => item.id === current.id)) {
-                    acc.push(current);
-                }
-                return acc;
-            }, []);
-        return uniqueComments;
-    }, [data.comments]);
+        return state.data.comments.filter(comment => comment.post === postId);
+    }, [state.data.comments]);
 
+    // Toggle visibility of comments
     const toggleComments = useCallback((postId) => {
-        setVisibleComments((prev) => ({
-            ...prev,
-            [postId]: !prev[postId],
-        }));
+        dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
+
+    const handleReaction = async (targetType, targetId, reactionType) => {
+        try {
+            const response = await APIs.post(endpoints["reactions"], {
+                target_type: targetType,
+                target_id: targetId,
+                reaction_type: reactionType,
+            });
+
+            if (response.status === 201) {
+                dispatch({
+                    type: 'ADD_REACTION',
+                    payload: response.data,
+                });
+            }
+        } catch (error) {
+            console.error("Error adding reaction:", error);
+        }
+    };
 
     const screenWidth = Dimensions.get("window").width;
 
-    if (loading) {
+    if (state.loading) {
         return (
             <View style={HomeStyles.loaderContainer}>
                 <Text style={HomeStyles.loaderText}>Loading posts...</Text>
@@ -121,9 +178,15 @@ const Home = () => {
                 )}
 
                 <View style={HomeStyles.interactionRow}>
-                    <Text style={HomeStyles.reactionText}>👍 {postReactions.like}</Text>
-                    <Text style={HomeStyles.reactionText}>😂 {postReactions.haha}</Text>
-                    <Text style={HomeStyles.reactionText}>❤️ {postReactions.love}</Text>
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
+                        <Text style={HomeStyles.reactionText}>👍 {postReactions.like}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "haha")}>
+                        <Text style={HomeStyles.reactionText}>😂 {postReactions.haha}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleReaction("post", post.id, "love")}>
+                        <Text style={HomeStyles.reactionText}>❤️ {postReactions.love}</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={HomeStyles.interactionButton}
                         onPress={() => toggleComments(post.id)}
@@ -138,7 +201,7 @@ const Home = () => {
                     </TouchableOpacity>
                 </View>
 
-                {visibleComments[post.id] && (
+                {state.visibleComments[post.id] && (
                     <View style={HomeStyles.comments}>
                         {postComments.map((comment) => {
                             const commentReactions = calculateReactions("comment", comment.id);
@@ -182,19 +245,23 @@ const Home = () => {
 
     return (
         <View style={HomeStyles.container}>
-            {/* Header */}
             <View style={HomeStyles.header}>
                 <Text style={HomeStyles.appName}>SocialApp</Text>
             </View>
 
-            {/* Posts List */}
             <FlatList
-                data={data.posts}
+                data={state.data.posts || []}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderPost}
+                showsVerticalScrollIndicator={false}
+                onEndReached={() => {
+                    if (nextPage) {
+                        loadPosts(nextPage);
+                    }
+                }}
+                onEndReachedThreshold={0.5}
             />
 
-            {/* Bottom Navigation Bar */}
             <Navbar navigation={navigation} />
         </View>
     );

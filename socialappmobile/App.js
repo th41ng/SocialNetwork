@@ -7,7 +7,8 @@ import RegisterScreen from './components/Auth/Register';
 import ProfileScreen from './components/Profile/UserProfile';
 import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
-import HomeScreen from './components/Home/Home'; 
+import HomeScreen from './components/Home/Home';
+import CreatePost from './components/Home/CreatePost';  // Đảm bảo đã import đúng
 
 const Stack = createStackNavigator();
 
@@ -21,11 +22,31 @@ export default function App() {
         <MyUserContext.Provider value={user}>
           <MyDispatchContext.Provider value={dispatch}>
             <Stack.Navigator initialRouteName="Login">
-            
-              <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="UserProfile" component={ProfileScreen} options={{ headerShown: false }} />
-              <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+              <Stack.Screen 
+                name="Login" 
+                component={LoginScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="Register" 
+                component={RegisterScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="UserProfile" 
+                component={ProfileScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="Home" 
+                component={HomeScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="CreatePost" 
+                component={CreatePost} 
+                options={{ headerShown: false }} 
+              />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>

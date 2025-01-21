@@ -5,7 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import AuthStyle from './AuthStyle';
 import APIs, { authApis, endpoints } from "../../configs/APIs";
-
+import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
 const Register = () => {
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
@@ -27,8 +28,10 @@ const Register = () => {
     const fetchRoles = async () => {
       try {
         const response = await APIs.get(endpoints["getRoles"]);
-        console.log("Fetched roles:", response.data);  
-        setRoles(Array.isArray(response.data) ? response.data : []); 
+        console.log("Fetched roles:", response.data);
+        if (response.data && response.data.results) {
+          setRoles(response.data.results); // Lưu kết quả vào state
+        }
       } catch (error) {
         console.error("Failed to fetch roles:", error);
       }
@@ -49,12 +52,48 @@ const Register = () => {
     }
   };
 
+
+
+const uploadImage = async (image) => {
+  if (!image) return null;
+
+  const uri = image.uri;
+
+  try {
+    // Đọc ảnh dưới dạng base64
+    const fileBase64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64
+    });
+
+    // Tạo formData
+    const formData = new FormData();
+    formData.append("file", `data:image/jpeg;base64,${fileBase64}`);
+    formData.append("upload_preset", "ml_default"); // Thay bằng upload_preset từ Cloudinary.
+
+    // Thực hiện upload ảnh
+    const response = await axios.post(
+      "https://api.cloudinary.com/v1_1/ddskv3qix/image/upload",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+
+    console.log("Image uploaded successfully:", response.data.secure_url);
+    return response.data.secure_url; // Trả về URL ảnh đã tải lên
+
+  } catch (error) {
+    console.error("Error during image upload:", error);
+    alert("Không thể tải ảnh lên. Vui lòng thử lại.");
+    return null;
+  }
+};
+
+
   const register = async () => {
     if (!role) {
       alert("Vui lòng chọn vai trò");
       return;
     }
-  
+
     // Giảng viên (teachers) do not need to enter their password, but it must be sent with a default value
     if (role.name !== "Giảng viên") {
       if (password !== confirmPassword) {
@@ -71,7 +110,7 @@ const Register = () => {
         setPassword('ou@123');  // Set a default password for Giảng viên
       }
     }
-  
+
     if (!email || !email.includes("@")) {
       alert("Vui lòng nhập email hợp lệ!");
       return;
@@ -80,41 +119,44 @@ const Register = () => {
       alert("Số điện thoại không hợp lệ!");
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       const form = new FormData();
-  
+
       form.append("first_name", first_name);
       form.append("last_name", last_name);
       form.append("username", username);
       form.append("email", email); // Email
       form.append("phone_number", phoneNumber); // Số điện thoại
       form.append("role", role.id); // Use the role ID from the selected role
-  
-      if (role.name === "Sinh Viên") {
+
+      if (role.name === "Sinh viên") {
         form.append("student_id", studentId); // Add student ID only if role is "Sinh Viên"
       }
-  
+
       form.append("password", password); // Add password regardless of role
-  
+
       if (avatar) {
-        form.append("avatar", {
-          uri: avatar.uri,
-          name: avatar.fileName || "avatar.jpg",
-          type: avatar.type || "image/jpeg",
-        });
+        const avatarUrl = await uploadImage(avatar);
+        if (avatarUrl) {
+          form.append("avatar", avatarUrl);
+        } else {
+          alert("Không thể tải ảnh đại diện lên.");
+          setLoading(false);
+          return;
+        }
       }
-  
+
       const response = await APIs.post(endpoints["register"], form, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-  
+
       console.log("Registration Success:", response.data); // Log the response on success
-  
+
       navigation.navigate("Login");
     } catch (error) {
       console.error("Đăng ký lỗi:", error); // Log the error in case of failure
@@ -179,7 +221,7 @@ const Register = () => {
           mode="outlined"
         />
 
-        {role && role.name === "Sinh Viên" && (
+        {role && role.name === "Sinh viên" && (
           <>
             <TextInput
               label="Mã số sinh viên"
@@ -221,28 +263,33 @@ const Register = () => {
         {avatar && <Image source={{ uri: avatar.uri }} style={AuthStyle.avatarPreview} />}
 
         <Menu
-          visible={menuVisible} 
-          onDismiss={() => setMenuVisible(false)} 
-          anchor={
-            <Button
-              onPress={() => setMenuVisible(true)} 
-            >
-              {role ? role.name : "Chọn vai trò"} 
-            </Button>
-          }
-        >
-          {roles.map((roleOption) => (
-            <Menu.Item
-              key={roleOption.id}
-              title={roleOption.name}
-              onPress={() => {
-                setRole(roleOption); 
-                setMenuVisible(false); 
-              }}
-            />
-          ))}
-          <Divider />
-        </Menu>
+  visible={menuVisible} 
+  onDismiss={() => setMenuVisible(false)} 
+  anchor={
+    <Button onPress={() => setMenuVisible(true)} >
+      {role ? role.name : "Chọn vai trò"} 
+    </Button>
+  }
+>
+  {roles && roles.length > 0 ? (
+    roles.map((roleOption) => (
+      <Menu.Item
+        key={roleOption.id}
+        title={roleOption.name}
+        onPress={() => {
+          setRole(roleOption); 
+          setMenuVisible(false); 
+          console.log("Roles:", roles);
+console.log("Selected Role:", role);
+
+        }}
+      />
+    ))
+  ) : (
+    <Text style={{ padding: 10 }}>Không có vai trò</Text>
+  )}
+  <Divider />
+</Menu>
 
         <Button
           onPress={register}
