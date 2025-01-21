@@ -15,11 +15,13 @@ class RoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 class UserSerializer(serializers.ModelSerializer):
-    role = serializers.CharField(source='role.name')
+    role = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'avatar', 'cover_image', 'phone_number', 'email', 'role', 'student_id','student_id_verified']
+        fields = ['id', 'username', 'avatar', 'cover_image','phone_number', 'email', 'role','student_id', 'student_id_verified']
+
+
 
 class PostCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -93,29 +95,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'avatar', 'cover_image', 'phone_number', 'first_name', 'last_name',
-            'role', 'student_id'
+            'role', 'student_id', 'password_reset_deadline'
         ]
 
     def create(self, validated_data):
         # If role is not provided, assign a default role (optional)
         role = validated_data.get('role', None)  # Default role can be assigned here, if needed
 
-        # Handle "Giảng viên" role (set default password)
-        if role and role.name == 'Giảng viên':
-            password = 'ou@123'  # Default password for "Giảng viên"
-            validated_data['password'] = password  # Ensure password is set in validated data
-        else:
-            password = validated_data.get('password')  # Use the provided password if not "Giảng viên"
-
-        # Create the user instance with the password
+        # Hash the password and create the user
         user = User.objects.create_user(**validated_data)
 
         # Assign the role if it's present in validated data
         if role:
             user.role = role
 
-        # Handle email sending for "Giảng viên"
+        # Handle 'Giảng viên' role
         if user.role and user.role.name == 'Giảng viên':
+            user.set_password('ou@123')  # Default password for "Giảng viên"
             user.password_reset_deadline = user.date_joined + timedelta(days=1)  # Password reset deadline (24 hours)
             # Send email requiring password change
             subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
@@ -133,6 +129,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
                 [user.email],
                 fail_silently=False,
             )
+
 
         # Save the user instance
         user.save()
@@ -296,3 +293,4 @@ class GroupMemberSerializer(serializers.ModelSerializer):
             group_member = GroupMember.objects.create(group=group, user=user, **validated_data)
             group_members.append(group_member)
         return group_members
+
