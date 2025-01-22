@@ -1,9 +1,12 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Alert, View } from "react-native";
+import { ScrollView, StyleSheet, Alert, View, Image } from "react-native";
 import { TextInput, Button, Menu, Divider, Provider, Text } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+import axios from "axios";
 
 const CreatePost = () => {
     const [content, setContent] = useState("");
@@ -13,11 +16,51 @@ const CreatePost = () => {
         { id: 2, name: "Công nghệ" },
     ]);
     const [visible, setVisible] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState(1); // Mặc định là ID 1
+    const [selectedCategory, setSelectedCategory] = useState(1);
     const navigation = useNavigation();
+    const [image, setImage] = useState(null); // State để lưu ảnh
 
     const openMenu = () => setVisible(true);
     const closeMenu = () => setVisible(false);
+
+    // Chọn ảnh
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
+    // Hàm upload ảnh lên Cloudinary
+    const uploadImage = async (imageUri) => {
+        try {
+            const fileBase64 = await FileSystem.readAsStringAsync(imageUri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            const formData = new FormData();
+            formData.append("file", `data:image/jpeg;base64,${fileBase64}`);
+            formData.append("upload_preset", "ml_default"); // Thay bằng upload preset của bạn
+
+            const response = await axios.post(
+                "https://api.cloudinary.com/v1_1/ddskv3qix/image/upload", // Thay bằng cloud name của bạn
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            return response.data.secure_url;
+        } catch (error) {
+            console.error("Error uploading image:", error);
+            Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
+            return null;
+        }
+    };
 
     const handlePost = async () => {
         try {
@@ -40,15 +83,25 @@ const CreatePost = () => {
             }
 
             const user = await AsyncStorage.getItem("user");
-            const user_id = JSON.parse(user).id; // Lấy id
+            const user_id = JSON.parse(user).id;
 
-            // Cấu trúc dữ liệu gửi lên API
+            // Upload image to Cloudinary if selected
+            let imageUrl = null;
+            if (image) {
+                imageUrl = await uploadImage(image);
+                if (!imageUrl) {
+                    Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
+                    return;
+                }
+            }
+
             const data = {
                 user: user_id,
                 category: selectedCategory,
                 content,
-                visibility: "public", // Cái này có thể chỉnh sửa tùy theo yêu cầu
-                is_comment_locked: false, // Cái này có thể chỉnh sửa tùy theo yêu cầu
+                image: imageUrl, // Thêm image URL vào data
+                visibility: "public",
+                is_comment_locked: false,
             };
 
             console.log("Dữ liệu gửi lên API:", data);
@@ -58,7 +111,10 @@ const CreatePost = () => {
 
             if (res.status === 201) {
                 Alert.alert("Thông báo", "Đăng bài thành công!");
-                navigation.navigate("Home", { refresh: true }); // Gửi tham số refresh qua Home
+                navigation.navigate("Home", { refresh: true });
+                // Reset state
+                setContent("");
+                setImage(null);
             } else {
                 Alert.alert("Thông báo", "Đăng bài thất bại. Vui lòng thử lại!");
             }
@@ -124,6 +180,14 @@ const CreatePost = () => {
                         <Divider />
                     </Menu>
                 </View>
+
+                {/* Hiển thị ảnh đã chọn */}
+                {image && <Image source={{ uri: image }} style={{ width: 200, height: 200, alignSelf: 'center' }} />}
+
+                {/* Nút chọn ảnh */}
+                <Button icon="camera" mode="outlined" onPress={pickImage} style={styles.button}>
+                    Chọn ảnh
+                </Button>
 
                 <Button
                     mode="contained"

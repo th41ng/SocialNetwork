@@ -60,16 +60,17 @@ const Home = ({ route, navigation = useNavigation() }) => {
     };
 
     // Load posts, reactions, and comments
-    const loadPosts = useCallback(async (url = endpoints["posts"]) => {
+    const loadPosts = useCallback(async (url = endpoints["posts"], refresh = false) => {
         try {
+            // Fetch data from API
             const [resPosts, resReactions, allComments] = await Promise.all([
                 fetchData(url),
                 fetchData(endpoints["reactions"]),
-                fetchAllComments(), // Fetch all comments
+                fetchAllComments(),
             ]);
 
-            // Remove duplicate posts and handle pagination
-            let allPosts = url === endpoints["posts"]
+            // If refreshing, discard current posts and use only the new ones
+            let allPosts = refresh
                 ? resPosts.results
                 : [
                     ...new Map(
@@ -84,7 +85,7 @@ const Home = ({ route, navigation = useNavigation() }) => {
                 payload: {
                     posts: allPosts,
                     reactions: resReactions.results,
-                    comments: allComments, // Cập nhật comments bằng allComments
+                    comments: allComments,
                 },
             });
         } catch (error) {
@@ -100,16 +101,19 @@ const Home = ({ route, navigation = useNavigation() }) => {
     // useFocusEffect instead of useEffect
     useFocusEffect(
         React.useCallback(() => {
+            // Check if the component is focused and if we need to refresh the posts
             if (state.data.posts.length === 0 || route.params?.refresh) {
                 dispatch({ type: 'SET_LOADING', payload: true });
-                loadPosts(endpoints["posts"]);
+                loadPosts(endpoints["posts"], route.params?.refresh); // Pass refresh param to loadPosts
             }
+
             return () => {
+                // Cleanup if needed
                 if (route.params?.refresh) {
-                    navigation.setParams({ refresh: false });
+                    navigation.setParams({ refresh: false }); // Reset refresh param
                 }
             };
-        }, [state.data.posts, route.params?.refresh])
+        }, [state.data.posts, route.params, loadPosts]) // Add loadPosts to dependencies
     );
 
     // Memoized function to get comments for a specific post
@@ -238,7 +242,7 @@ const Home = ({ route, navigation = useNavigation() }) => {
                 {/* Post Image */}
                 {post.image && (
                     <Image
-                        source={{ uri: post.image }}
+                        source={{ uri: post.image.startsWith('image/upload/') ? post.image.replace('image/upload/', '') : post.image }}
                         style={HomeStyles.postImage}
                         resizeMode="cover"
                     />
@@ -316,7 +320,7 @@ const Home = ({ route, navigation = useNavigation() }) => {
         );
     };
     // Loading state
-    if ((state.loading || loadingComments) && state.data.posts.length === 0) {
+    if ((state.loading || loadingComments) && state.data.posts.length == 0) {
         return (
             <View style={HomeStyles.loaderContainer}>
                 <ActivityIndicator size="large" color="#0000ff" />
