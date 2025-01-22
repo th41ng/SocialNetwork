@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useCallback, useReducer, useState, useContext } from "react";
 import {
     Text,
     View,
@@ -16,6 +16,7 @@ import { useNavigation } from "@react-navigation/native";
 import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MyUserContext } from "../../configs/UserContext";
 
 // Import reducer và initialState từ reducer.js
 import reducer, { initialState, RESET_REACTIONS, SET_COMMENTS } from './reducer';
@@ -24,6 +25,8 @@ const Home = ({ navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [nextPage, setNextPage] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [commentUsers, setCommentUsers] = useState({}); // State lưu thông tin user của comment
+    const user = useContext(MyUserContext);
 
     // Load posts (chỉ load posts)
     const loadPosts = async (url = endpoints["posts"]) => {
@@ -227,6 +230,40 @@ const Home = ({ navigation = useNavigation() }) => {
 
     const screenWidth = Dimensions.get("window").width;
 
+    // Hàm lấy thông tin user cho comment
+    const loadUserDetails = async (username) => {
+        if (commentUsers[username]) return;
+        try {
+            const token = await AsyncStorage.getItem("token");
+            const response = await authApis(token).get(
+                `${endpoints["user-detail"](username)}`
+            );
+            setCommentUsers((prevUsers) => ({
+                ...prevUsers,
+                [username]: response.data,
+            }));
+        } catch (error) {
+            console.error(`Error fetching details for user ${username}:`, error);
+            if (error.response && error.response.status === 404) {
+                setCommentUsers((prevUsers) => ({
+                    ...prevUsers,
+                    [username]: { notFound: true },
+                }));
+            }
+        }
+    };
+
+    useEffect(() => {
+        Object.keys(state.visibleComments).forEach((postId) => {
+            if (state.visibleComments[postId]) {
+                const postComments = getCommentsForPost(postId);
+                postComments.forEach((comment) => {
+                    loadUserDetails(comment.user);
+                });
+            }
+        });
+    }, [state.visibleComments, state.data.comments]);
+
     if (state.loading) {
         return (
             <View style={HomeStyles.loaderContainer}>
@@ -272,7 +309,7 @@ const Home = ({ navigation = useNavigation() }) => {
                     />
                 )}
 
-                {/*  */}
+                {/*  */}
                 <View style={HomeStyles.interactionRow}>
                     {/* Các nút tương tác */}
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
@@ -303,18 +340,27 @@ const Home = ({ navigation = useNavigation() }) => {
                 {state.visibleComments[post.id] && (
                     <View style={HomeStyles.comments}>
                         {postComments.map((comment) => {
+                            const commentUserInfo = commentUsers[comment.user];
                             return (
                                 <View key={comment.id} style={HomeStyles.comment}>
                                     {/* Avatar của người comment */}
                                     <Avatar.Image
-                                        source={{ uri: comment.user?.avatar || "https://via.placeholder.com/150" }}
+                                        source={{
+                                            uri:
+                                                commentUserInfo && !commentUserInfo.notFound
+                                                    ? commentUserInfo.avatar || "https://via.placeholder.com/150"
+                                                    : "https://via.placeholder.com/150",
+                                        }}
                                         size={30}
                                         style={HomeStyles.commentAvatar}
                                     />
                                     {/* Nội dung comment */}
                                     <View style={{ flex: 1 }}>
                                         <Text style={HomeStyles.commentUsername}>
-                                            {comment.user || "Anonymous"}
+                                            {/* {comment.user} */}
+                                            {commentUserInfo && !commentUserInfo.notFound
+                                                ? commentUserInfo.last_name
+                                                : comment.user}
                                         </Text>
                                         <RenderHtml
                                             contentWidth={screenWidth}
