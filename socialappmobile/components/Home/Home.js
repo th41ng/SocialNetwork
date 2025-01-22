@@ -1,138 +1,94 @@
-import React, { useEffect, useMemo, useCallback, useReducer, useState, useContext } from "react";
+import React, { useEffect, useMemo, useCallback, useReducer, useState } from "react";
 import {
     Text,
     View,
     Dimensions,
     TouchableOpacity,
     FlatList,
-    Image
+    Image,
+    ActivityIndicator
 } from "react-native";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import APIs, { endpoints, authApis } from "../../configs/APIs";
 import RenderHtml from "react-native-render-html";
 import HomeStyles from "./HomeStyles";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MyUserContext } from "../../configs/UserContext";
-
-// Import reducer và initialState từ reducer.js
-import reducer, { initialState, RESET_REACTIONS, SET_COMMENTS } from './reducer';
+import reducer, { initialState } from './reducer';
 
 const Home = ({ navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [nextPage, setNextPage] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [commentUsers, setCommentUsers] = useState({}); // State lưu thông tin user của comment
-    const user = useContext(MyUserContext);
+    const [loadingMore, setLoadingMore] = useState(false);
 
-    // Load posts (chỉ load posts)
-    const loadPosts = async (url = endpoints["posts"]) => {
+    // Fetch data function
+    const fetchData = async (url) => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const resPosts = await authApis(token).get(url);
+            const res = await authApis(token).get(url);
+            return res.data;
+        } catch (error) {
+            console.error("API request failed:", error);
+            throw error;
+        }
+    };
 
-            // Loại bỏ bài viết trùng lặp
-            const allPosts = [
-                ...new Map(
-                    [...state.data.posts, ...resPosts.data.results].map((post) => [post.id, post])
-                ).values(),
-            ];
+    // Load posts, reactions, and comments
+    const loadPosts = useCallback(async (url = endpoints["posts"]) => {
+        try {
+            const [resPosts, resReactions, resComments] = await Promise.all([
+                fetchData(url),
+                fetchData(endpoints["reactions"]),
+                fetchData(endpoints["comments"]),
+            ]);
 
-            setNextPage(resPosts.data.next);
+            // Remove duplicate posts and handle pagination
+            let allPosts = url === endpoints["posts"] // Check if it's the initial load based on the URL
+                ? resPosts.results
+                : [
+                    ...new Map(
+                        [...state.data.posts, ...resPosts.results].map((post) => [post.id, post])
+                    ).values(),
+                ];
+
+            setNextPage(resPosts.next);
 
             dispatch({
                 type: 'SET_DATA',
                 payload: {
-                    ...state.data,
                     posts: allPosts,
+                    reactions: resReactions.results,
+                    comments: resComments.results,
                 },
             });
         } catch (error) {
-            console.error("API request failed:", error);
+            console.error("Failed to load data:", error);
         } finally {
             dispatch({ type: 'SET_LOADING', payload: false });
-        }
-    };
-
-    const loadReactions = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            let url = "/reactions/";
-            let allReactions = [];
-            let shouldLoadMore = true;
-
-            while (url && shouldLoadMore) {
-                const resReactions = await authApis(token).get(url);
-                allReactions = allReactions.concat(resReactions.data.results);
-
-                // Kiểm tra xem trang tiếp theo có phải là null không
-                if (resReactions.data.next) {
-                    url = resReactions.data.next;
-                    // Thay thế domain hiện tại bằng domain của bạn
-                    url = url.replace("https://danhdanghoang.pythonanywhere.com", "");
-                } else {
-                    shouldLoadMore = false;
-                    url = null;
-                }
-            }
-
-            dispatch({
-                type: 'SET_REACTIONS',
-                payload: allReactions
-            });
-        } catch (error) {
-            console.error("Error loading reactions:", error);
-            if (error.response && error.response.status === 401) {
-                console.error("Unauthorized: Token may have expired.");
-                dispatch({ type: RESET_REACTIONS });
-                await AsyncStorage.removeItem('token');
-                await AsyncStorage.removeItem('user');
-                setIsLoggedIn(false);
-                navigation.navigate('Login');
+            // Dời setLoadingMore(false) vào đây
+            if (url !== endpoints["posts"]) {
+                setLoadingMore(false);
             }
         }
-    };
+    }, [state.data.posts]);
 
-    // Load comments (tách riêng loadComments)
-    const loadComments = async () => {
-        try {
-            const token = await AsyncStorage.getItem('token');
-            const resComments = await authApis(token).get("/comments/");
-            dispatch({
-                type: SET_COMMENTS, // Sửa type action thành SET_COMMENTS
-                payload: resComments.data.results
-            });
-        } catch (error) {
-            console.error("Error loading comments:", error);
-        }
-    };
+    // useFocusEffect instead of useEffect
+    useFocusEffect(
+        React.useCallback(() => {
+            if (state.data.posts.length === 0) {
+                dispatch({ type: 'SET_LOADING', payload: true });
+                loadPosts(endpoints["posts"]);
+            }
+            return () => {
+                // Cleanup if needed
+            };
+        }, [state.data.posts])
+    );
 
-    // Kiểm tra trạng thái đăng nhập khi mount và khi isLoggedIn thay đổi
-    useEffect(() => {
-        const checkLoginStatus = async () => {
-            const token = await AsyncStorage.getItem('token');
-            setIsLoggedIn(!!token);
-        };
-
-        checkLoginStatus();
-    }, []);
-
-    // Load lại reactions và comments khi isLoggedIn thay đổi
-    useEffect(() => {
-        if (isLoggedIn) {
-            loadReactions();
-            loadComments();
-        }
-    }, [isLoggedIn]);
-
-    // Load post khi khởi tạo
-    useEffect(() => {
-        loadPosts();
-    }, []);
-
+    // Memoized function to get comments for a specific post
     const getCommentsForPost = useMemo(() => (postId) => {
         return state.data.comments.filter(comment => comment.post === postId);
     }, [state.data.comments]);
@@ -142,10 +98,9 @@ const Home = ({ navigation = useNavigation() }) => {
         dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
 
-    // Handle reaction (giữ nguyên, có thể tối ưu thêm)
-    const handleReaction = async (targetType, targetId, reactionType) => {
+    // Handle reactions
+    const handleReaction = useCallback(async (targetType, targetId, reactionType) => {
         try {
-            // Retrieve user ID and token from AsyncStorage
             const storedUser = await AsyncStorage.getItem('user');
             const token = await AsyncStorage.getItem('token');
             if (!storedUser || !token) {
@@ -154,56 +109,32 @@ const Home = ({ navigation = useNavigation() }) => {
             }
             const user = JSON.parse(storedUser);
             const userId = user.id;
-
-            // Sử dụng authApis(token) để gửi request có authentication
             const authenticatedApis = authApis(token);
 
-            // Kiểm tra xem user đã reaction chưa
+            // Check for existing reaction
             const existingReaction = state.data.reactions.find(
                 r => r.user.id === userId && r.target_type === targetType && r.target_id === targetId
             );
 
             let response;
-            let reactionChanged = false; // Biến kiểm tra reaction có thay đổi hay không
-
             if (existingReaction) {
                 if (existingReaction.reaction_type === reactionType) {
-                    // Xóa reaction (DELETE)
-                    if (existingReaction.id) {
-                        response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
-                        reactionChanged = true;
-                    } else {
-                        console.error("Error: existingReaction.id is undefined");
-                    }
+                    response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
                 } else {
-                    // Cập nhật reaction (PATCH)
-                    const payload = {
-                        reaction_type: reactionType,
-                    };
+                    const payload = { reaction_type: reactionType };
                     response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, payload);
-                    reactionChanged = true;
                 }
             } else {
-                // Tạo reaction mới (POST)
-                const payload = {
-                    target_type: targetType,
-                    target_id: targetId,
-                    reaction_type: reactionType,
-                    user: { id: userId },
-                };
+                const payload = { target_type: targetType, target_id: targetId, reaction_type: reactionType, user: { id: userId } };
                 response = await authenticatedApis.post(endpoints.reactions, payload);
-                reactionChanged = true;
             }
 
-            // Xử lý response và cập nhật state
             if (response.status === 200 || response.status === 201 || response.status === 204) {
-                // Lấy thông tin summary của reactions
                 const summaryResponse = await authenticatedApis.get(
                     `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`
                 );
 
                 if (summaryResponse.status === 200) {
-                    // Cập nhật state cho số lượng reactions của post/comment
                     dispatch({
                         type: 'UPDATE_POST_REACTIONS',
                         payload: {
@@ -213,10 +144,8 @@ const Home = ({ navigation = useNavigation() }) => {
                         }
                     });
 
-                    // Chỉ cập nhật reactions nếu có thay đổi
-                    if (reactionChanged) {
-                        loadReactions();
-                    }
+                    const resReactions = await authenticatedApis.get("/reactions/");
+                    dispatch({ type: 'SET_REACTIONS', payload: resReactions.data.results });
                 } else {
                     console.error("Error fetching reaction summary:", summaryResponse);
                 }
@@ -226,58 +155,25 @@ const Home = ({ navigation = useNavigation() }) => {
         } catch (error) {
             console.error("Error in handleReaction:", error.response || error.message);
         }
-    };
+    }, [state.data.reactions]);
 
     const screenWidth = Dimensions.get("window").width;
 
-    // Hàm lấy thông tin user cho comment
-    const loadUserDetails = async (username) => {
-        if (commentUsers[username]) return;
-        try {
-            const token = await AsyncStorage.getItem("token");
-            const response = await authApis(token).get(
-                `${endpoints["user-detail"](username)}`
-            );
-            setCommentUsers((prevUsers) => ({
-                ...prevUsers,
-                [username]: response.data,
-            }));
-        } catch (error) {
-            console.error(`Error fetching details for user ${username}:`, error);
-            if (error.response && error.response.status === 404) {
-                setCommentUsers((prevUsers) => ({
-                    ...prevUsers,
-                    [username]: { notFound: true },
-                }));
-            }
+    // Function to handle loading more posts
+    const handleLoadMore = () => {
+        if (nextPage && !loadingMore) {
+            setLoadingMore(true);
+            loadPosts(nextPage);
         }
     };
 
-    useEffect(() => {
-        Object.keys(state.visibleComments).forEach((postId) => {
-            if (state.visibleComments[postId]) {
-                const postComments = getCommentsForPost(postId);
-                postComments.forEach((comment) => {
-                    loadUserDetails(comment.user);
-                });
-            }
-        });
-    }, [state.visibleComments, state.data.comments]);
-
-    if (state.loading) {
-        return (
-            <View style={HomeStyles.loaderContainer}>
-                <Text style={HomeStyles.loaderText}>Loading posts...</Text>
-            </View>
-        );
-    }
-
+    // Render individual post
     const renderPost = ({ item: post }) => {
         const postComments = getCommentsForPost(post.id);
 
         return (
             <View key={post.id} style={HomeStyles.postContainer}>
-                {/* Header của bài viết */}
+                {/* Post Header */}
                 <View style={HomeStyles.postHeader}>
                     <Avatar.Image
                         source={{ uri: post.user.avatar || "https://via.placeholder.com/150" }}
@@ -294,24 +190,24 @@ const Home = ({ navigation = useNavigation() }) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Nội dung bài viết */}
+                {/* Post Content */}
                 <RenderHtml
                     contentWidth={screenWidth}
                     source={{ html: post.content }}
                     baseStyle={HomeStyles.postContent}
                 />
 
-                {/* Hình ảnh của bài viết (nếu có) */}
+                {/* Post Image */}
                 {post.image && (
                     <Image
                         source={{ uri: post.image }}
                         style={HomeStyles.postImage}
+                        resizeMode="cover"
                     />
                 )}
 
-                {/*  */}
+                {/* Interaction Row */}
                 <View style={HomeStyles.interactionRow}>
-                    {/* Các nút tương tác */}
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "like")}>
                         <Text style={HomeStyles.reactionText}>👍 {post.reaction_summary?.like || 0}</Text>
                     </TouchableOpacity>
@@ -321,7 +217,6 @@ const Home = ({ navigation = useNavigation() }) => {
                     <TouchableOpacity onPress={() => handleReaction("post", post.id, "love")}>
                         <Text style={HomeStyles.reactionText}>❤️ {post.reaction_summary?.love || 0}</Text>
                     </TouchableOpacity>
-                    {/* Nút toggle comments */}
                     <TouchableOpacity
                         style={HomeStyles.interactionButton}
                         onPress={() => toggleComments(post.id)}
@@ -336,64 +231,59 @@ const Home = ({ navigation = useNavigation() }) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Hiển thị comments nếu visibleComments của post đó là true */}
+                {/* Comments */}
                 {state.visibleComments[post.id] && (
                     <View style={HomeStyles.comments}>
-                        {postComments.map((comment) => {
-                            const commentUserInfo = commentUsers[comment.user];
-                            return (
-                                <View key={comment.id} style={HomeStyles.comment}>
-                                    {/* Avatar của người comment */}
-                                    <Avatar.Image
-                                        source={{
-                                            uri:
-                                                commentUserInfo && !commentUserInfo.notFound
-                                                    ? commentUserInfo.avatar || "https://via.placeholder.com/150"
-                                                    : "https://via.placeholder.com/150",
-                                        }}
-                                        size={30}
-                                        style={HomeStyles.commentAvatar}
+                        {postComments.map((comment) => (
+                            <View key={comment.id} style={HomeStyles.comment}>
+                                <Avatar.Image
+                                    source={{ uri: comment.user?.avatar || "https://via.placeholder.com/150" }}
+                                    size={30}
+                                    style={HomeStyles.commentAvatar}
+                                />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={HomeStyles.commentUsername}>
+                                        {comment.user.username || "Anonymous"}
+                                    </Text>
+                                    <RenderHtml
+                                        contentWidth={screenWidth}
+                                        source={{ html: comment.content }}
+                                        baseStyle={HomeStyles.commentContent}
                                     />
-                                    {/* Nội dung comment */}
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={HomeStyles.commentUsername}>
-                                            {/* {comment.user} */}
-                                            {commentUserInfo && !commentUserInfo.notFound
-                                                ? commentUserInfo.last_name
-                                                : comment.user}
-                                        </Text>
-                                        <RenderHtml
-                                            contentWidth={screenWidth}
-                                            source={{ html: comment.content }}
-                                            baseStyle={HomeStyles.commentContent}
-                                        />
-                                        {/* Các nút tương tác cho comment */}
-                                        <View style={HomeStyles.reactionRow}>
-                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "like")}>
-                                                <Text style={HomeStyles.reactionText}>
-                                                    👍 {comment.reaction_summary?.like || 0}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "haha")}>
-                                                <Text style={HomeStyles.reactionText}>
-                                                    😂 {comment.reaction_summary?.haha || 0}
-                                                </Text>
-                                            </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "love")}>
-                                                <Text style={HomeStyles.reactionText}>
-                                                    ❤️ {comment.reaction_summary?.love || 0}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        </View>
+                                    <View style={HomeStyles.reactionRow}>
+                                        <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "like")}>
+                                            <Text style={HomeStyles.reactionText}>
+                                                👍 {comment.reaction_summary?.like || 0}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "haha")}>
+                                            <Text style={HomeStyles.reactionText}>
+                                                😂 {comment.reaction_summary?.haha || 0}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleReaction("comment", comment.id, "love")}>
+                                            <Text style={HomeStyles.reactionText}>
+                                                ❤️ {comment.reaction_summary?.love || 0}
+                                            </Text>
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
-                            );
-                        })}
+                            </View>
+                        ))}
                     </View>
                 )}
             </View>
         );
     };
+    // Loading state
+    if (state.loading && state.data.posts.length == 0) {
+        return (
+            <View style={HomeStyles.loaderContainer}>
+                <ActivityIndicator size="large" color="#0000ff" />
+                <Text style={HomeStyles.loaderText}>Loading posts...</Text>
+            </View>
+        );
+    }
 
     return (
         <View style={HomeStyles.container}>
@@ -406,12 +296,13 @@ const Home = ({ navigation = useNavigation() }) => {
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderPost}
                 showsVerticalScrollIndicator={false}
-                onEndReached={() => {
-                    if (nextPage) {
-                        loadPosts(nextPage);
-                    }
-                }}
+                onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
+                ListFooterComponent={loadingMore && (
+                    <View style={HomeStyles.loaderContainer}>
+                        <ActivityIndicator size="small" color="#0000ff" />
+                    </View>
+                )}
             />
 
             <Navbar navigation={navigation} />

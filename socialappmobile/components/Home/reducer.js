@@ -1,10 +1,10 @@
 // Initial state
 export const initialState = {
-    data: { 
-        posts: [], 
-        reactions: [], 
+    data: {
+        posts: [],
+        reactions: [],
         comments: [],
-        commentReactions: {} // Thêm commentReactions để lưu trữ reactions theo commentId
+        commentReactions: {} // Lưu trữ reactions theo commentId
     },
     loading: true,
     visibleComments: {},
@@ -13,7 +13,8 @@ export const initialState = {
 // ACTIONS
 export const RESET_REACTIONS = 'RESET_REACTIONS';
 export const SET_COMMENTS = 'SET_COMMENTS';
-export const SET_COMMENT_REACTIONS = 'SET_COMMENT_REACTIONS'; // Thêm action SET_COMMENT_REACTIONS
+export const SET_COMMENT_REACTIONS = 'SET_COMMENT_REACTIONS';
+export const UPDATE_COMMENT_REACTIONS = 'UPDATE_COMMENT_REACTIONS'; // Action mới để cập nhật reactions cho comment
 
 const reducer = (state = initialState, action) => {
     switch (action.type) {
@@ -38,10 +39,7 @@ const reducer = (state = initialState, action) => {
                         ...state.data,
                         posts: state.data.posts.map(post => {
                             if (post.id === postId) {
-                                if (reactionsSummary) {
-                                    return { ...post, reaction_summary: reactionsSummary };
-                                }
-                                return { ...post };
+                                return { ...post, reaction_summary: reactionsSummary || post.reaction_summary }; // Cập nhật reaction_summary, giữ nguyên nếu không có
                             }
                             return post;
                         }),
@@ -54,10 +52,7 @@ const reducer = (state = initialState, action) => {
                         ...state.data,
                         comments: state.data.comments.map(comment => {
                             if (comment.id === commentId) {
-                                if (reactionsSummary) {
-                                    return { ...comment, reaction_summary: reactionsSummary };
-                                }
-                                return { ...comment };
+                                return { ...comment, reaction_summary: reactionsSummary || comment.reaction_summary}; // Cập nhật reaction_summary, giữ nguyên nếu không có
                             }
                             return comment;
                         }),
@@ -81,15 +76,18 @@ const reducer = (state = initialState, action) => {
                     comments: action.payload
                 }
             };
-        case 'SET_COMMENT_REACTIONS': // Xử lý action SET_COMMENT_REACTIONS
+        case 'UPDATE_COMMENT_REACTIONS': // Cập nhật reactions cho comment
+            const { commentId: updatedCommentId, reactionsSummary: updatedReactionsSummary } = action.payload;
             return {
                 ...state,
                 data: {
                     ...state.data,
-                    commentReactions: {
-                        ...state.data.commentReactions,
-                        [action.payload.commentId]: action.payload.reactions // Cập nhật reactions cho commentId
-                    }
+                    comments: state.data.comments.map(comment => {
+                        if (comment.id === updatedCommentId) {
+                            return { ...comment, reaction_summary: updatedReactionsSummary };
+                        }
+                        return comment;
+                    }),
                 }
             };
         case RESET_REACTIONS:
