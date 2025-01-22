@@ -18,11 +18,13 @@ import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import reducer, { initialState } from './reducer';
+import AddComment from "./AddComment";
 
-const Home = ({ navigation = useNavigation() }) => {
+const Home = ({ route, navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [nextPage, setNextPage] = useState(null);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [loadingComments, setLoadingComments] = useState(false);
 
     // Fetch data function
     const fetchData = async (url) => {
@@ -36,17 +38,38 @@ const Home = ({ navigation = useNavigation() }) => {
         }
     };
 
+    // Hàm fetch tất cả comments
+    const fetchAllComments = async () => {
+        setLoadingComments(true);
+        try {
+            let allComments = [];
+            let url = endpoints["comments"];
+
+            while (url) {
+                const resComments = await fetchData(url);
+                allComments = [...allComments, ...resComments.results];
+                url = resComments.next;
+            }
+            return allComments
+        } catch (error) {
+            console.error("Failed to fetch all comments:", error);
+            return [];
+        } finally {
+            setLoadingComments(false);
+        }
+    };
+
     // Load posts, reactions, and comments
     const loadPosts = useCallback(async (url = endpoints["posts"]) => {
         try {
-            const [resPosts, resReactions, resComments] = await Promise.all([
+            const [resPosts, resReactions, allComments] = await Promise.all([
                 fetchData(url),
                 fetchData(endpoints["reactions"]),
-                fetchData(endpoints["comments"]),
+                fetchAllComments(), // Fetch all comments
             ]);
 
             // Remove duplicate posts and handle pagination
-            let allPosts = url === endpoints["posts"] // Check if it's the initial load based on the URL
+            let allPosts = url === endpoints["posts"]
                 ? resPosts.results
                 : [
                     ...new Map(
@@ -61,14 +84,13 @@ const Home = ({ navigation = useNavigation() }) => {
                 payload: {
                     posts: allPosts,
                     reactions: resReactions.results,
-                    comments: resComments.results,
+                    comments: allComments, // Cập nhật comments bằng allComments
                 },
             });
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
             dispatch({ type: 'SET_LOADING', payload: false });
-            // Dời setLoadingMore(false) vào đây
             if (url !== endpoints["posts"]) {
                 setLoadingMore(false);
             }
@@ -78,14 +100,16 @@ const Home = ({ navigation = useNavigation() }) => {
     // useFocusEffect instead of useEffect
     useFocusEffect(
         React.useCallback(() => {
-            if (state.data.posts.length === 0) {
+            if (state.data.posts.length === 0 || route.params?.refresh) {
                 dispatch({ type: 'SET_LOADING', payload: true });
                 loadPosts(endpoints["posts"]);
             }
             return () => {
-                // Cleanup if needed
+                if (route.params?.refresh) {
+                    navigation.setParams({ refresh: false });
+                }
             };
-        }, [state.data.posts])
+        }, [state.data.posts, route.params?.refresh])
     );
 
     // Memoized function to get comments for a specific post
@@ -166,7 +190,21 @@ const Home = ({ navigation = useNavigation() }) => {
             loadPosts(nextPage);
         }
     };
+    // Callback function to refresh comments after adding a new one
+    const handleCommentAdded = useCallback((postId) => {
+        // Re-fetch comments to update the list
+        const fetchData = async () => {
+            try {
+                const token = await AsyncStorage.getItem('token');
+                const resComments = await authApis(token).get(endpoints["comments"]);
+                dispatch({ type: 'SET_COMMENTS', payload: resComments.data.results });
+            } catch (error) {
+                console.error("Failed to refresh comments:", error);
+            }
+        };
 
+        fetchData();
+    }, [dispatch]);
     // Render individual post
     const renderPost = ({ item: post }) => {
         const postComments = getCommentsForPost(post.id);
@@ -243,7 +281,8 @@ const Home = ({ navigation = useNavigation() }) => {
                                 />
                                 <View style={{ flex: 1 }}>
                                     <Text style={HomeStyles.commentUsername}>
-                                        {comment.user.username || "Anonymous"}
+                                        {/* Hiển thị trực tiếp comment.user */}
+                                        {comment.user || "Anonymous"}
                                     </Text>
                                     <RenderHtml
                                         contentWidth={screenWidth}
@@ -270,13 +309,14 @@ const Home = ({ navigation = useNavigation() }) => {
                                 </View>
                             </View>
                         ))}
+                        <AddComment postId={post.id} onCommentAdded={handleCommentAdded} />
                     </View>
                 )}
             </View>
         );
     };
     // Loading state
-    if (state.loading && state.data.posts.length == 0) {
+    if ((state.loading || loadingComments) && state.data.posts.length === 0) {
         return (
             <View style={HomeStyles.loaderContainer}>
                 <ActivityIndicator size="large" color="#0000ff" />
