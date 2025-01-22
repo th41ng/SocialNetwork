@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Avatar } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import APIs, { endpoints, authApis } from "../../configs/APIs"; // Thay đổi import
+import APIs, { endpoints, authApis } from "../../configs/APIs";
 import RenderHtml from "react-native-render-html";
 import HomeStyles from "./HomeStyles";
 import { useNavigation } from "@react-navigation/native";
@@ -17,22 +17,19 @@ import Navbar from "../Home/Navbar";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
 // Import reducer và initialState từ reducer.js
-import reducer, { initialState } from './reducer'; // Import cả initialState
+import reducer, { initialState, RESET_REACTIONS, SET_COMMENTS } from './reducer';
+
 const Home = ({ navigation = useNavigation() }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [nextPage, setNextPage] = useState(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // Load posts, reactions, and comments
+    // Load posts (chỉ load posts)
     const loadPosts = async (url = endpoints["posts"]) => {
         try {
             const token = await AsyncStorage.getItem('token');
-            const [resPosts, resReactions, resComments] = await Promise.all([
-                authApis(token).get(url),
-                authApis(token).get("/reactions/"),
-                authApis(token).get("/comments/"),
-            ]);
+            const resPosts = await authApis(token).get(url);
 
             // Loại bỏ bài viết trùng lặp
             const allPosts = [
@@ -46,9 +43,8 @@ const Home = ({ navigation = useNavigation() }) => {
             dispatch({
                 type: 'SET_DATA',
                 payload: {
+                    ...state.data,
                     posts: allPosts,
-                    reactions: resReactions.data.results,
-                    comments: resComments.data.results,
                 },
             });
         } catch (error) {
@@ -58,6 +54,78 @@ const Home = ({ navigation = useNavigation() }) => {
         }
     };
 
+    const loadReactions = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            let url = "/reactions/";
+            let allReactions = [];
+            let shouldLoadMore = true;
+
+            while (url && shouldLoadMore) {
+                const resReactions = await authApis(token).get(url);
+                allReactions = allReactions.concat(resReactions.data.results);
+
+                // Kiểm tra xem trang tiếp theo có phải là null không
+                if (resReactions.data.next) {
+                    url = resReactions.data.next;
+                    // Thay thế domain hiện tại bằng domain của bạn
+                    url = url.replace("https://danhdanghoang.pythonanywhere.com", "");
+                } else {
+                    shouldLoadMore = false;
+                    url = null;
+                }
+            }
+
+            dispatch({
+                type: 'SET_REACTIONS',
+                payload: allReactions
+            });
+        } catch (error) {
+            console.error("Error loading reactions:", error);
+            if (error.response && error.response.status === 401) {
+                console.error("Unauthorized: Token may have expired.");
+                dispatch({ type: RESET_REACTIONS });
+                await AsyncStorage.removeItem('token');
+                await AsyncStorage.removeItem('user');
+                setIsLoggedIn(false);
+                navigation.navigate('Login');
+            }
+        }
+    };
+
+    // Load comments (tách riêng loadComments)
+    const loadComments = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            const resComments = await authApis(token).get("/comments/");
+            dispatch({
+                type: SET_COMMENTS, // Sửa type action thành SET_COMMENTS
+                payload: resComments.data.results
+            });
+        } catch (error) {
+            console.error("Error loading comments:", error);
+        }
+    };
+
+    // Kiểm tra trạng thái đăng nhập khi mount và khi isLoggedIn thay đổi
+    useEffect(() => {
+        const checkLoginStatus = async () => {
+            const token = await AsyncStorage.getItem('token');
+            setIsLoggedIn(!!token);
+        };
+
+        checkLoginStatus();
+    }, []);
+
+    // Load lại reactions và comments khi isLoggedIn thay đổi
+    useEffect(() => {
+        if (isLoggedIn) {
+            loadReactions();
+            loadComments();
+        }
+    }, [isLoggedIn]);
+
+    // Load post khi khởi tạo
     useEffect(() => {
         loadPosts();
     }, []);
@@ -71,6 +139,7 @@ const Home = ({ navigation = useNavigation() }) => {
         dispatch({ type: 'TOGGLE_COMMENTS', payload: postId });
     }, []);
 
+    // Handle reaction (giữ nguyên, có thể tối ưu thêm)
     const handleReaction = async (targetType, targetId, reactionType) => {
         try {
             // Retrieve user ID and token from AsyncStorage
@@ -92,59 +161,59 @@ const Home = ({ navigation = useNavigation() }) => {
             );
 
             let response;
+            let reactionChanged = false; // Biến kiểm tra reaction có thay đổi hay không
+
             if (existingReaction) {
                 if (existingReaction.reaction_type === reactionType) {
                     // Xóa reaction (DELETE)
-                    response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
+                    if (existingReaction.id) {
+                        response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
+                        reactionChanged = true;
+                    } else {
+                        console.error("Error: existingReaction.id is undefined");
+                    }
                 } else {
                     // Cập nhật reaction (PATCH)
                     const payload = {
                         reaction_type: reactionType,
                     };
                     response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, payload);
+                    reactionChanged = true;
                 }
             } else {
                 // Tạo reaction mới (POST)
                 const payload = {
-                    target_type: targetType, // Thêm target_type vào payload
+                    target_type: targetType,
                     target_id: targetId,
                     reaction_type: reactionType,
                     user: { id: userId },
                 };
-                console.log("Payload sent:", payload);
                 response = await authenticatedApis.post(endpoints.reactions, payload);
+                reactionChanged = true;
             }
 
             // Xử lý response và cập nhật state
             if (response.status === 200 || response.status === 201 || response.status === 204) {
                 // Lấy thông tin summary của reactions
-                console.log("Fetching summary for:", targetType, targetId);
                 const summaryResponse = await authenticatedApis.get(
                     `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`
                 );
 
                 if (summaryResponse.status === 200) {
                     // Cập nhật state cho số lượng reactions của post/comment
-                    console.log("Dispatching UPDATE_POST_REACTIONS with:", {
-                        targetType: targetType,
-                        [targetType === "post" ? "postId" : "commentId"]: targetId,
-                        reactionsSummary: summaryResponse.data.reaction_summary,
-                    });
                     dispatch({
                         type: 'UPDATE_POST_REACTIONS',
                         payload: {
                             targetType: targetType,
-                            [targetType === "post" ? "postId" : "commentId"]: targetId, // Truyền đúng targetId
+                            [targetType === "post" ? "postId" : "commentId"]: targetId,
                             reactionsSummary: summaryResponse.data.reaction_summary,
                         }
                     });
 
-                    // Cập nhật lại danh sách reactions trong state để lần gọi tiếp theo có dữ liệu đúng
-                    const resReactions = await authenticatedApis.get("/reactions/");
-                    dispatch({
-                        type: 'SET_REACTIONS',
-                        payload: resReactions.data.results,
-                    });
+                    // Chỉ cập nhật reactions nếu có thay đổi
+                    if (reactionChanged) {
+                        loadReactions();
+                    }
                 } else {
                     console.error("Error fetching reaction summary:", summaryResponse);
                 }
