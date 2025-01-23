@@ -306,18 +306,18 @@ const Home = ({ route, navigation = useNavigation() }) => {
                 Alert.alert("Thông báo", "Vui lòng đăng nhập để xóa bài viết!");
                 return;
             }
-
-            const res = await authApis(token).delete(`<span class="math-inline">\{endpoints\["posts"\]\}</span>{postId}/`);
-
+    
+            const res = await authApis(token).delete(endpoints.post_detail(postId)); // Sửa endpoint
+    
             if (res.status === 204) {
                 Alert.alert("Thông báo", "Xóa bài viết thành công!");
-
+    
                 // Cập nhật lại state bằng cách dispatch action để xóa bài viết khỏi danh sách
                 dispatch({
                     type: 'DELETE_POST',
                     payload: postId
                 });
-
+    
             } else {
                 Alert.alert("Lỗi", "Xóa bài viết thất bại. Vui lòng thử lại!");
             }
@@ -326,7 +326,6 @@ const Home = ({ route, navigation = useNavigation() }) => {
             Alert.alert("Lỗi", "Đã có lỗi xảy ra khi xóa bài viết.");
         }
     };
-
 
     // Render individual post
     const renderPost = ({ item: post }) => {
