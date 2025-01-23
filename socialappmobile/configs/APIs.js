@@ -12,6 +12,8 @@ export const endpoints = {
     create_post: "/posts/",
     reactions: "/reactions/",
     comments: "/comments/", // Đã thêm endpoint cho comments
+    post_detail: (postId) => `/posts/${postId}/`,      // Thêm endpoint cho post detail
+    comment_detail: (commentId) => `/comments/${commentId}/`, // Thêm endpoint cho comment detail
 };
 
 export const authApis = (token) => {
