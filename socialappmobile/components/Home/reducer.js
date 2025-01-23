@@ -76,20 +76,22 @@ const reducer = (state = initialState, action) => {
                     comments: action.payload
                 }
             };
-        case 'UPDATE_COMMENT_REACTIONS': // Cập nhật reactions cho comment
-            const { commentId: updatedCommentId, reactionsSummary: updatedReactionsSummary } = action.payload;
-            return {
-                ...state,
-                data: {
+            case 'UPDATE_COMMENT_REACTIONS':
+                const { commentId: updatedCommentId, reactionsSummary: updatedReactionsSummary } = action.payload;
+                return {
+                  ...state,
+                  data: {
                     ...state.data,
                     comments: state.data.comments.map(comment => {
-                        if (comment.id === updatedCommentId) {
-                            return { ...comment, reaction_summary: updatedReactionsSummary };
-                        }
-                        return comment;
+                      if (comment.id === updatedCommentId) {
+                        return { ...comment, reaction_summary: updatedReactionsSummary };
+                      }
+                      return comment;
                     }),
-                }
-            };
+                  },
+                };
+              
+              
         case RESET_REACTIONS:
             return {
                 ...state,
