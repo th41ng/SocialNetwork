@@ -22,26 +22,26 @@ const CreatePost = () => {
   const handlePost = async () => {
     try {
       setLoading(true);
-
+  
       // Lấy token từ AsyncStorage
       const token = await AsyncStorage.getItem("token");
       if (!token) {
         Alert.alert("Thông báo", "Vui lòng đăng nhập trước khi đăng bài!");
         return;
       }
-
+  
       // Kiểm tra nội dung bài viết và danh mục
       if (!content.trim()) {
         Alert.alert("Thông báo", "Nội dung bài viết không được để trống!");
         return;
       }
-
+  
       if (!selectedCategory) {
         Alert.alert("Thông báo", "Vui lòng chọn danh mục!");
         return;
       }
-
-      // Lấy thông tin cần thiết từ AsyncStorage
+  
+      // Lấy thông tin người dùng từ AsyncStorage
       const userInfoKeys = [
         "username",
         "email",
@@ -53,8 +53,20 @@ const CreatePost = () => {
       const userInfo = await Promise.all(
         userInfoKeys.map((key) => AsyncStorage.getItem(key))
       );
+  
       const [username, email, phone_number, avatar, student_id, cover_image] = userInfo;
-
+  
+      // Debug: Log thông tin đã lấy ra
+      console.log("Thông tin lấy từ AsyncStorage:", {
+        username,
+        email,
+        phone_number,
+        avatar,
+        student_id,
+        cover_image,
+      });
+  
+      // Kiểm tra thông tin
       if (!username || !email || !phone_number || !avatar || !student_id) {
         Alert.alert(
           "Thông báo",
@@ -63,8 +75,8 @@ const CreatePost = () => {
         navigation.navigate("Login");
         return;
       }
-
-      // Cấu trúc dữ liệu gửi lên API
+  
+      // Dữ liệu gửi lên API
       const data = {
         user: {
           avatar,
@@ -77,13 +89,12 @@ const CreatePost = () => {
         visibility: "public",
         is_comment_locked: false,
       };
-
+  
       console.log("Dữ liệu gửi lên API:", data);
-
-      // Gửi yêu cầu POST đến API
+  
+      // Gửi yêu cầu POST
       const res = await authApis(token).post(endpoints["create_post"], data);
-      console.log("Full response:", res);
-
+  
       if (res.status === 201) {
         Alert.alert("Thông báo", "Đăng bài thành công!");
         navigation.navigate("Home", { refreshPosts: true });
@@ -92,23 +103,12 @@ const CreatePost = () => {
       }
     } catch (error) {
       console.error("Lỗi khi đăng bài:", error.response?.data || error.message || error);
-      let errorMessage = "Lỗi không xác định.";
-      if (error.response) {
-        if (error.response.data) {
-          errorMessage = `Lỗi từ server: ${JSON.stringify(error.response.data)}`;
-        } else {
-          errorMessage = `Lỗi từ server: ${error.response.status} ${error.response.statusText}`;
-        }
-      } else if (error.request) {
-        errorMessage = "Không thể kết nối đến server.";
-      } else {
-        errorMessage = error.message;
-      }
-      Alert.alert("Thông báo", `Đã có lỗi xảy ra: ${errorMessage}`);
+      Alert.alert("Thông báo", "Đã có lỗi xảy ra. Vui lòng thử lại!");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <Provider>

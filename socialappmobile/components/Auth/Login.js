@@ -72,8 +72,8 @@ const Login = () => {
 
         console.log("userData (sau khi kiểm tra):", userData);
 
-        // Kiểm tra thông tin sinh viên và xác thực mật khẩu (nếu có)
-        if(userData.password_reset_deadline){
+        
+        if(userData.password_reset_deadline && userData.role === "Giảng viên"){
             const password_reset_deadline = new Date(userData.password_reset_deadline);
             const currentTime = new Date();
             const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
@@ -84,7 +84,7 @@ const Login = () => {
                 return;
             }
         }
-
+       
 
         if (userData.student_id_verified === false && userData.role !== "Giảng viên") {
           Alert.alert("Lỗi", "Tài khoản chưa được xác thực mã sinh viên. Vui lòng liên hệ với quản trị viên.");

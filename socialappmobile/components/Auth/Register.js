@@ -21,8 +21,8 @@ const Register = () => {
   const [role, setRole] = useState(null); // Role initially is null (not selected)
   const [roles, setRoles] = useState([]); // To store the roles fetched from the backend
   const [menuVisible, setMenuVisible] = useState(false); // Added state to manage menu visibility
+
   const navigation = useNavigation();
-  
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -40,78 +40,83 @@ const Register = () => {
     fetchRoles();
   }, []);
 
-  const register = async () => {
-    if (!role) {
-      alert("Vui lòng chọn vai trò");
+ 
+
+
+const register = async () => {
+  if (!role) {
+    alert("Vui lòng chọn vai trò");
+    return;
+  }
+
+  // Giảng viên (teachers) do not need to enter their password, but it must be sent with a default value
+  if (role.name !== "Giảng viên") {
+    if (password !== confirmPassword) {
+      alert("Mật khẩu không khớp!");
       return;
     }
+    if (!password || password.length < 6) {
+      alert("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+  } else {
+    // For teachers, set a default password if not provided
+    if (!password) {
+      setPassword('ou@123');  // Set a default password for Giảng viên
+    }
+  }
 
-    // Giảng viên (teachers) do not need to enter their password, but it must be sent with a default value
-    if (role.name !== "Giảng viên") {
-      if (password !== confirmPassword) {
-        alert("Mật khẩu không khớp!");
-        return;
-      }
-      if (!password || password.length < 6) {
-        alert("Mật khẩu phải có ít nhất 6 ký tự");
-        return;
-      }
+  if (!email || !email.includes("@")) {
+    alert("Vui lòng nhập email hợp lệ!");
+    return;
+  }
+  if (!phoneNumber || phoneNumber.length < 10) {
+    alert("Số điện thoại không hợp lệ!");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Prepare data for the registration API
+    const data = {
+      first_name,
+      last_name,
+      username,
+      email,
+      phone_number: phoneNumber,
+      role: role.id, // Use the role ID from the selected role
+      password,
+    };
+
+    // Add student_id if the role is "Sinh viên"
+    if (role.name === "Sinh viên") {
+      data.student_id = studentId;
+    }
+
+   
+    console.log("DAta",data);
+    // Make the POST request to register the user
+    const response = await APIs.post(endpoints.register, data, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Registration Success:", response.data); // Log the response on success
+    navigation.navigate("Login");
+  } catch (error) {
+    console.error("Đăng ký lỗi:", error); // Log the error in case of failure
+    if (error.response) {
+      console.error("Error Response:", error.response.data);
+      alert("Lỗi đăng ký: " + error.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!");
     } else {
-      // For teachers, set a default password if not provided
-      if (!password) {
-        setPassword('ou@123');  // Set a default password for Giảng viên
-      }
+      alert("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
     }
-
-    if (!email || !email.includes("@")) {
-      alert("Vui lòng nhập email hợp lệ!");
-      return;
-    }
-    if (!phoneNumber || phoneNumber.length < 10) {
-      alert("Số điện thoại không hợp lệ!");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const form = new FormData();
-
-      form.append("first_name", first_name);
-      form.append("last_name", last_name);
-      form.append("username", username);
-      form.append("email", email); // Email
-      form.append("phone_number", phoneNumber); // Số điện thoại
-      form.append("role", role.id); // Use the role ID from the selected role
-      if (role.name === "Sinh viên") {
-        form.append("student_id", studentId); // Add student ID only if role is "Sinh Viên"
-      }
-      form.append("password", password); // Add password regardless of role
-
-      const response = await APIs.post(endpoints["register"], form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      console.log("Registration Success:", response.data); // Log the response on success
-
-      navigation.navigate("Login");
-    } catch (error) {
-      console.error("Đăng ký lỗi:", error); // Log the error in case of failure
-      if (error.response) {
-        // Log specific error message from the server
-        console.error("Error Response:", error.response.data);
-        alert("Lỗi đăng ký: " + error.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!");
-      } else {
-        // If there's no response, it could be a network issue
-        alert("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -196,29 +201,25 @@ const Register = () => {
         )}
 
 <Menu
-  visible={menuVisible} 
-  onDismiss={() => setMenuVisible(false)} 
+  visible={menuVisible}
+  onDismiss={() => setMenuVisible(false)}
   anchor={
-    <Button onPress={() => setMenuVisible(true)} >
-      {role ? role.name : "Chọn vai trò"} 
+    <Button mode="outlined" onPress={() => setMenuVisible(true)}>
+      {role ? role.name : "Chọn vai trò"}
     </Button>
   }
 >
-  {roles && roles.length > 0 ? (
-    roles.map((roleOption) => (
-      <Menu.Item
-        key={roleOption.id}
-        title={roleOption.name}
-        onPress={() => {
-          setRole(roleOption);  // Directly update role
-          setMenuVisible(false); // Close the menu after selection
-          console.log("Selected Role:", roleOption); // Log selected role
-        }}
-      />
-    ))
-  ) : (
-    <Text style={{ padding: 10 }}>Không có vai trò</Text>
-  )}
+  {roles.map((roleOption) => (
+    <Menu.Item
+      key={roleOption.id}
+      title={roleOption.name}
+      onPress={() => {
+        setRole(roleOption); // Cập nhật role ngay khi nhấn chọn
+        setMenuVisible(false); // Ẩn menu ngay lập tức
+        console.log("Selected Role:",roleOption);
+      }}
+    />
+  ))}
   <Divider />
 </Menu>
 

@@ -11,7 +11,7 @@ import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
 import HomeScreen from './components/Home/Home';
 import CreatePost from './components/Home/CreatePost';  
-
+import NotificationListScreen from './components/Notifications/NotificationList';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -29,16 +29,9 @@ export default function App() {
               <Stack.Screen name="UserProfile" component={ProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="UserSecurity" component={UserSecurityScreen} options={{ headerShown: false }} />
-              <Stack.Screen 
-                name="Home" 
-                component={HomeScreen} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="CreatePost" 
-                component={CreatePost} 
-                options={{ headerShown: false }} 
-              />
+              <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="CreatePost" component={CreatePost} options={{ headerShown: false }} />
+              <Stack.Screen name="NotificationList" component={NotificationListScreen} options={{ headerShown: false }} />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>

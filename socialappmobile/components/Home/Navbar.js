@@ -17,7 +17,7 @@ const Navbar = ({ navigation }) => {
                     <Ionicons name="add" size={32} color="#FFF" />
                 </View>
             </TouchableOpacity>
-            <TouchableOpacity style={HomeStyles.navItem}>
+            <TouchableOpacity style={HomeStyles.navItem} onPress={()=> navigation.navigate("NotificationList")}>
                 <Ionicons name="notifications-outline" size={28} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity style={HomeStyles.navItem} onPress={() => navigation.navigate("UserProfile")}>

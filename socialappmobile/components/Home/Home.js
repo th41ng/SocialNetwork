@@ -73,86 +73,97 @@ const Home = ({ navigation = useNavigation() }) => {
 
     const handleReaction = async (targetType, targetId, reactionType) => {
         try {
-            // Retrieve user ID and token from AsyncStorage
+            // Lấy user và token từ AsyncStorage
             const storedUser = await AsyncStorage.getItem('user');
             const token = await AsyncStorage.getItem('token');
+    
             if (!storedUser || !token) {
-                console.error("User information or token not found.");
+                console.error("User hoặc token không tìm thấy.");
                 return;
             }
+    
             const user = JSON.parse(storedUser);
-            const userId = user.id;
-
-            // Sử dụng authApis(token) để gửi request có authentication
+    
+            // Kiểm tra đầu vào
+            if (!user.id || !targetType || !targetId || !reactionType) {
+                console.error("Dữ liệu đầu vào không hợp lệ:", {
+                    userId: user.id,
+                    targetType,
+                    targetId,
+                    reactionType,
+                });
+                return;
+            }
+    
+            console.log("Thông tin đầu vào:", {
+                userId: user.id,
+                targetType,
+                targetId,
+                reactionType,
+            });
+    
             const authenticatedApis = authApis(token);
-
-            // Kiểm tra xem user đã reaction chưa
-            const existingReaction = state.data.reactions.find(
-                r => r.user.id === userId && r.target_type === targetType && r.target_id === targetId
+    
+            // Kiểm tra xem đã có reaction chưa
+            const existingReaction = state.data.reactions?.find(
+                r => r.user?.id === user.id && r.target_type === targetType && r.target_id === targetId
             );
-
+    
             let response;
+    
             if (existingReaction) {
                 if (existingReaction.reaction_type === reactionType) {
-                    // Xóa reaction (DELETE)
+                    // Nếu reaction giống nhau, xóa reaction
                     response = await authenticatedApis.delete(`${endpoints.reactions}${existingReaction.id}/`);
                 } else {
-                    // Cập nhật reaction (PATCH)
-                    const payload = {
+                    // Nếu khác nhau, cập nhật reaction
+                    response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, {
                         reaction_type: reactionType,
-                    };
-                    response = await authenticatedApis.patch(`${endpoints.reactions}${existingReaction.id}/`, payload);
+                    });
                 }
             } else {
-                // Tạo reaction mới (POST)
+                // Nếu chưa có reaction, tạo mới
                 const payload = {
-                    target_type: targetType, // Thêm target_type vào payload
+                    target_type: targetType,
                     target_id: targetId,
                     reaction_type: reactionType,
-                    user: { id: userId },
+                    user: { id: user.id },
                 };
-                console.log("Payload sent:", payload);
+                console.log("Payload tạo mới reaction:", payload);
                 response = await authenticatedApis.post(endpoints.reactions, payload);
             }
-
-            // Xử lý response và cập nhật state
+    
+            // Nếu thao tác thành công, lấy lại danh sách reactions và cập nhật state
             if (response.status === 200 || response.status === 201 || response.status === 204) {
-                // Lấy thông tin summary của reactions
-                console.log("Fetching summary for:", targetType, targetId);
+                console.log("Reaction xử lý thành công, lấy dữ liệu tóm tắt reactions...");
                 const summaryResponse = await authenticatedApis.get(
                     `${targetType === "post" ? endpoints.posts : endpoints.comments}${targetId}/reactions-summary/`
                 );
-
+    
                 if (summaryResponse.status === 200) {
-                    // Cập nhật state cho số lượng reactions của post/comment
-                    console.log("Dispatching UPDATE_POST_REACTIONS with:", {
-                        targetType: targetType,
-                        [targetType === "post" ? "postId" : "commentId"]: targetId,
-                        reactionsSummary: summaryResponse.data.reaction_summary,
-                    });
                     dispatch({
                         type: 'UPDATE_POST_REACTIONS',
                         payload: {
-                            targetType: targetType,
-                            [targetType === "post" ? "postId" : "commentId"]: targetId, // Truyền đúng targetId
+                            targetType,
+                            [targetType === "post" ? "postId" : "commentId"]: targetId,
                             reactionsSummary: summaryResponse.data.reaction_summary,
-                        }
+                        },
                     });
-
-                    // Cập nhật lại danh sách reactions trong state để lần gọi tiếp theo có dữ liệu đúng
+    
+                    // Cập nhật lại danh sách reactions
                     const resReactions = await authenticatedApis.get("/reactions/");
                     dispatch({
                         type: 'SET_REACTIONS',
                         payload: resReactions.data.results,
                     });
                 } else {
-                    console.error("Error fetching reaction summary:", summaryResponse);
+                    console.error("Lỗi khi lấy tóm tắt reactions:", summaryResponse);
                 }
             } else {
-                console.error("Error handling reaction:", response);
+                console.error("Lỗi trong thao tác reaction:", response);
             }
         } catch (error) {
-            console.error("Error in handleReaction:", error.response || error.message);
+            console.error("Lỗi trong handleReaction:", error.response || error.message);
         }
     };
 
