@@ -1,24 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollView, StyleSheet, Alert, View, Image } from "react-native";
 import { TextInput, Button, Menu, Divider, Provider, Text } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import axios from "axios";
 
-const CreatePost = () => {
-    const [content, setContent] = useState("");
+const EditPost = () => {
+    const route = useRoute();
+    const { post } = route.params;
+
+    const [content, setContent] = useState(post.content);
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([
         { id: 1, name: "Trạng thái" },
         { id: 2, name: "Công nghệ" },
     ]);
     const [visible, setVisible] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState(1);
+    const [selectedCategory, setSelectedCategory] = useState(post.category);
     const navigation = useNavigation();
-    const [image, setImage] = useState(null); // State để lưu ảnh
+    const [image, setImage] = useState(post.image ? { uri: post.image } : null);
 
     const openMenu = () => setVisible(true);
     const closeMenu = () => setVisible(false);
@@ -33,42 +36,56 @@ const CreatePost = () => {
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri);
+            setImage({ uri: result.assets[0].uri });
         }
     };
 
-    // Hàm upload ảnh lên Cloudinary
-    const uploadImage = async (imageUri) => {
+    // Upload image to Cloudinary
+    const uploadImage = async (image) => {
+        if (!image || !image.uri) return null;
+
         try {
-            const fileBase64 = await FileSystem.readAsStringAsync(imageUri, {
+            const token = await AsyncStorage.getItem("token");
+            const fileBase64 = await FileSystem.readAsStringAsync(image.uri, {
                 encoding: FileSystem.EncodingType.Base64,
             });
 
             const formData = new FormData();
             formData.append("file", `data:image/jpeg;base64,${fileBase64}`);
-            formData.append("upload_preset", "ml_default"); // Thay bằng upload preset của bạn
+            formData.append("upload_preset", "ml_default"); // Upload preset for Cloudinary
 
             const response = await axios.post(
-                "https://api.cloudinary.com/v1_1/ddskv3qix/image/upload", // Thay bằng cloud name của bạn
+                "https://api.cloudinary.com/v1_1/ddskv3qix/image/upload",
                 formData,
-                { headers: { "Content-Type": "multipart/form-data" } }
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    },
+                    Authorization: `Bearer ${token}`
+                }
             );
 
             return response.data.secure_url;
         } catch (error) {
             console.error("Error uploading image:", error);
-            Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
+            if (error.response) {
+                console.error("Error response data:", error.response.data);
+                console.error("Error response status:", error.response.status);
+                Alert.alert("Lỗi", `Không thể tải ảnh lên: ${error.response.data.error.message}`);
+            } else {
+                Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
+            }
             return null;
         }
     };
 
-    const handlePost = async () => {
+    const handleUpdatePost = async () => {
         try {
             setLoading(true);
 
             const token = await AsyncStorage.getItem("token");
             if (!token) {
-                Alert.alert("Thông báo", "Vui lòng đăng nhập trước khi đăng bài!");
+                Alert.alert("Thông báo", "Vui lòng đăng nhập để sửa bài viết!");
                 return;
             }
 
@@ -77,64 +94,33 @@ const CreatePost = () => {
                 return;
             }
 
-            if (!selectedCategory) {
-                Alert.alert("Thông báo", "Vui lòng chọn danh mục!");
-                return;
-            }
-
-            const user = await AsyncStorage.getItem("user");
-            const user_id = JSON.parse(user).id;
-
-            // Upload image to Cloudinary if selected
-            let imageUrl = null;
-            if (image) {
+            let imageUrl = post.image;
+            if (image && image.uri !== post.image) {
                 imageUrl = await uploadImage(image);
                 if (!imageUrl) {
                     Alert.alert("Lỗi", "Không thể tải ảnh lên. Vui lòng thử lại.");
                     return;
                 }
-                // Xóa image/upload/ nếu có
-                imageUrl = imageUrl.startsWith('image/upload/') ? imageUrl.replace('image/upload/', '') : imageUrl;
             }
 
             const data = {
-                user: user_id,
                 category: selectedCategory,
                 content,
-                image: imageUrl, // Thêm image URL vào data
-                visibility: "public",
-                is_comment_locked: false,
+                image: imageUrl,
             };
 
-            console.log("Dữ liệu gửi lên API:", data);
+            const res = await authApis(token).patch(`${endpoints["posts"]}${post.id}/`, data);
 
-            const res = await authApis(token).post(endpoints["create_post"], data);
-            console.log("Full response:", res);
-
-            if (res.status === 201) {
-                Alert.alert("Thông báo", "Đăng bài thành công!");
+            if (res.status === 200) {
+                Alert.alert("Thông báo", "Cập nhật bài viết thành công!");
                 navigation.navigate("Home", { refresh: true });
-                // Reset state
-                setContent("");
-                setImage(null);
             } else {
-                Alert.alert("Thông báo", "Đăng bài thất bại. Vui lòng thử lại!");
+                console.error("Update post response:", res);
+                Alert.alert("Thông báo", "Cập nhật bài viết thất bại. Vui lòng thử lại!");
             }
         } catch (error) {
-            console.error("Lỗi khi đăng bài:", error.response?.data || error.message || error);
-            let errorMessage = "Lỗi không xác định.";
-            if (error.response) {
-                if (error.response.data) {
-                    errorMessage = `Lỗi từ server: ${JSON.stringify(error.response.data)}`;
-                } else {
-                    errorMessage = `Lỗi từ server: ${error.response.status} ${error.response.statusText}`;
-                }
-            } else if (error.request) {
-                errorMessage = "Không thể kết nối đến server.";
-            } else {
-                errorMessage = error.message;
-            }
-            Alert.alert("Thông báo", `Đã có lỗi xảy ra: ${errorMessage}`);
+            console.error("Lỗi khi cập nhật bài viết:", error);
+            Alert.alert("Thông báo", "Đã có lỗi xảy ra khi cập nhật bài viết.");
         } finally {
             setLoading(false);
         }
@@ -160,11 +146,7 @@ const CreatePost = () => {
                         visible={visible}
                         onDismiss={closeMenu}
                         anchor={
-                            <Button
-                                mode="outlined"
-                                onPress={openMenu}
-                                style={styles.menuButton}
-                            >
+                            <Button mode="outlined" onPress={openMenu} style={styles.menuButton}>
                                 {categories.find((cat) => cat.id === selectedCategory)?.name || "Chọn danh mục"}
                             </Button>
                         }
@@ -183,22 +165,16 @@ const CreatePost = () => {
                     </Menu>
                 </View>
 
-                {/* Hiển thị ảnh đã chọn */}
-                {image && <Image source={{ uri: image }} style={{ width: 200, height: 200, alignSelf: 'center' }} />}
-
-                {/* Nút chọn ảnh */}
+                {/* Hiển thị và chọn ảnh */}
+                {image && (
+                    <Image source={{ uri: image.uri }} style={{ width: 200, height: 200, alignSelf: "center" }} />
+                )}
                 <Button icon="camera" mode="outlined" onPress={pickImage} style={styles.button}>
-                    Chọn ảnh
+                    {image ? "Đổi ảnh" : "Chọn ảnh"}
                 </Button>
 
-                <Button
-                    mode="contained"
-                    onPress={handlePost}
-                    loading={loading}
-                    style={styles.button}
-                    icon="send"
-                >
-                    Đăng bài
+                <Button mode="contained" onPress={handleUpdatePost} loading={loading} style={styles.button} icon="pencil">
+                    Cập nhật bài viết
                 </Button>
             </ScrollView>
         </Provider>
@@ -232,4 +208,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CreatePost;
+export default EditPost;
