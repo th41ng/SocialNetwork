@@ -1,16 +1,13 @@
-import React, { useState, useContext } from "react";
-import { View, StyleSheet, Alert } from "react-native";
-import { TextInput, Button } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
+import React, { useState, useCallback, useContext } from "react"; // Sửa import
+import { View, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import APIs, { authApis, endpoints } from "../../configs/APIs";
-import { MyUserContext } from "../../configs/UserContext";
+import { MyUserContext } from "../../configs/UserContext"; // Import MyUserContext
 
-const AddComment = ({ postId, onCommentAdded }) => {
+const AddComment = ({ postId, dispatch }) => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigation = useNavigation();
-  const user = useContext(MyUserContext); // Sửa ở đây: bỏ dấu ngoặc vuông
+  const  user  = useContext(MyUserContext); // Lấy user từ context
 
   const handleAddComment = async () => {
     if (!content.trim()) {
@@ -21,15 +18,14 @@ const AddComment = ({ postId, onCommentAdded }) => {
     setLoading(true);
 
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem("token");
       if (!token) {
         Alert.alert("Thông báo", "Bạn cần đăng nhập để bình luận!");
-        navigation.navigate("Login");
-        return;
+        return; // Không navigate nữa
       }
 
       // Lấy user id từ context
-      const user_id = user.id;
+      const user_id = user.id; // Giả sử user có property id
 
       const data = {
         content: content,
@@ -37,12 +33,17 @@ const AddComment = ({ postId, onCommentAdded }) => {
         user: user_id,
       };
 
-      const res = await authApis(token).post(endpoints['comments'], data);
+      const res = await authApis(token).post(endpoints["comments"], data);
 
       if (res.status === 201) {
         Alert.alert("Thông báo", "Bình luận thành công!");
         setContent("");
-        onCommentAdded(postId);
+
+        // Dispatch action để cập nhật danh sách comments
+        dispatch({
+          type: "ADD_COMMENT", // Thêm action ADD_COMMENT
+          payload: res.data, // Thêm comment mới vào payload
+        });
       } else {
         console.error("Add comment response:", res);
         Alert.alert("Thông báo", "Bình luận thất bại. Vui lòng thử lại!");
@@ -66,14 +67,10 @@ const AddComment = ({ postId, onCommentAdded }) => {
         style={styles.input}
       />
       <Button
-        mode="contained"
-        onPress={handleAddComment}
-        loading={loading}
-        style={styles.button}
-        disabled={!content.trim()}
-      >
-        Bình luận
-      </Button>
+    title="Bình luận" // Đảm bảo title là string
+    onPress={handleAddComment}
+    disabled={!content.trim() || loading} // Thêm loading vào điều kiện disabled
+/>
     </View>
   );
 };
