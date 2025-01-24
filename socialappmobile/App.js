@@ -12,6 +12,7 @@ import MyUserReducer from './configs/UserReducers';
 import HomeScreen from './components/Home/Home';
 import CreatePost from './components/Home/CreatePost';  
 import EditPost from './components/Home/EditPost';
+import EditComment from './components/Home/EditComment';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
                 options={{ headerShown: false }} 
               />
               <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
+              <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>

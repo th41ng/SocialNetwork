@@ -18,6 +18,8 @@ export const UPDATE_COMMENT_REACTIONS = 'UPDATE_COMMENT_REACTIONS'; // Action m�
 export const DELETE_POST = 'DELETE_POST'; // Action mới để xóa bài viết
 export const UPDATE_REACTION = "UPDATE_REACTION";
 export const ADD_REACTION = "ADD_REACTION";
+export const DELETE_COMMENT = 'DELETE_COMMENT';
+export const UPDATE_COMMENT = "UPDATE_COMMENT";
 
 const reducer = (state = initialState, action) => {
     switch (action.type) {
@@ -129,6 +131,24 @@ const reducer = (state = initialState, action) => {
                 data: {
                     ...state.data,
                     reactions: [...state.data.reactions, action.payload],
+                },
+            };
+        case DELETE_COMMENT:
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    comments: state.data.comments.filter(comment => comment.id !== action.payload)
+                }
+            };
+        case 'UPDATE_COMMENT':
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    comments: state.data.comments.map(c =>
+                        c.id === action.payload.id ? action.payload : c
+                    ),
                 },
             };
         default:
