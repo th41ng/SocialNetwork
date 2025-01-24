@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useContext } from "react"; // Sửa import
+import React, { useState, useCallback, useContext } from "react"; 
 import { View, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MyUserContext } from "../../configs/UserContext"; // Import MyUserContext
+import { MyUserContext } from "../../configs/UserContext"; 
 
 const AddComment = ({ postId, dispatch }) => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const  user  = useContext(MyUserContext); // Lấy user từ context
+  const  user  = useContext(MyUserContext); 
 
   const handleAddComment = async () => {
     if (!content.trim()) {
@@ -21,11 +21,11 @@ const AddComment = ({ postId, dispatch }) => {
       const token = await AsyncStorage.getItem("token");
       if (!token) {
         Alert.alert("Thông báo", "Bạn cần đăng nhập để bình luận!");
-        return; // Không navigate nữa
+        return; 
       }
 
       // Lấy user id từ context
-      const user_id = user.id; // Giả sử user có property id
+      const user_id = user.id; 
 
       const data = {
         content: content,
@@ -41,8 +41,8 @@ const AddComment = ({ postId, dispatch }) => {
 
         // Dispatch action để cập nhật danh sách comments
         dispatch({
-          type: "ADD_COMMENT", // Thêm action ADD_COMMENT
-          payload: res.data, // Thêm comment mới vào payload
+          type: "ADD_COMMENT",
+          payload: res.data, 
         });
       } else {
         console.error("Add comment response:", res);
@@ -58,33 +58,46 @@ const AddComment = ({ postId, dispatch }) => {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        label="Thêm bình luận"
-        value={content}
-        onChangeText={setContent}
-        mode="outlined"
-        multiline
-        style={styles.input}
-      />
-      <Button
-    title="Bình luận" // Đảm bảo title là string
-    onPress={handleAddComment}
-    disabled={!content.trim() || loading} // Thêm loading vào điều kiện disabled
-/>
+        <View style={styles.inputContainer}>
+            <TextInput
+                placeholder="Nhập bình luận của bạn..."
+                value={content}
+                onChangeText={setContent}
+                multiline
+                style={styles.input}
+            />
+        </View>
+        <Button
+            title="Bình luận"
+            onPress={handleAddComment}
+            disabled={!content.trim() || loading}
+            color="#2196F3" 
+        />
     </View>
-  );
+);
 };
 
 const styles = StyleSheet.create({
-  container: {
+container: {
     padding: 10,
-  },
-  input: {
+},
+inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
-  },
-  button: {
+},
+
+input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    maxHeight: 150, 
+},
+button: {
     marginTop: 5,
-  },
+},
 });
 
 export default AddComment;

@@ -1,6 +1,6 @@
 // components/CommentList.js
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Avatar, Menu, Divider } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useWindowDimensions } from 'react-native';
@@ -172,100 +172,154 @@ const CommentList = ({
     }
   
     return (
-      <View style={HomeStyles.comments}>
-        {comments.map((comment) => (
-          <View key={comment.id} style={HomeStyles.comment}>
-            <View style={HomeStyles.commentHeader}>
-              <Avatar.Image
-                source={{
-                  uri: comment.user?.avatar || "https://via.placeholder.com/150",
-                }}
-                size={30}
-                style={HomeStyles.commentAvatar}
-              />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={HomeStyles.commentUsername}>
-                  {comment.user?.username || "Anonymous"}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={(event) => toggleCommentMenu(event, comment.id)}
-              >
-                <MaterialIcons name="more-vert" size={20} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1 }}>
-              <RenderHtml
-                contentWidth={width}
-                source={{ html: comment.content }}
-                baseStyle={HomeStyles.commentContent}
-              />
-              <View style={HomeStyles.reactionRow}>
-                <TouchableOpacity
-                  onPress={() => handleCommentReaction(comment.id, "like")}
-                >
-                  <Text style={HomeStyles.reactionText}>
-                    👍 {comment.reaction_summary?.like || 0}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleCommentReaction(comment.id, "haha")}
-                >
-                  <Text style={HomeStyles.reactionText}>
-                    😂 {comment.reaction_summary?.haha || 0}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleCommentReaction(comment.id, "love")}
-                >
-                  <Text style={HomeStyles.reactionText}>
-                    ❤️ {comment.reaction_summary?.love || 0}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <Menu
-              visible={isCommentMenuVisible && currentComment === comment.id}
-              onDismiss={toggleCommentMenu}
-              anchor={anchorComment}
-            >
-              <Menu.Item
-                onPress={() => {
-                  navigation.navigate("EditComment", { comment: comment });
-                  toggleCommentMenu();
-                }}
-                title="Sửa bình luận"
-              />
-              <Divider />
-              <Menu.Item
-                onPress={() => {
-                  Alert.alert(
-                    "Xác nhận xóa",
-                    "Bạn có chắc chắn muốn xóa bình luận này?",
-                    [
-                      {
-                        text: "Hủy",
-                        style: "cancel",
-                      },
-                      {
-                        text: "Xóa",
-                        onPress: () => {
-                          handleDeleteComment(comment.id);
-                          toggleCommentMenu();
-                        },
-                      },
-                    ],
-                    { cancelable: false }
-                  );
-                }}
-                title="Xóa bình luận"
-              />
-            </Menu>
-          </View>
-        ))}
-        <AddComment postId={postId} dispatch={dispatch} />
-      </View>
+        <View style={styles.comments}>
+            {comments.map((comment) => (
+                <View key={comment.id} style={styles.commentContainer}>
+                    <View style={styles.comment}>
+                        <View style={styles.commentHeader}>
+                            <Avatar.Image
+                                source={{
+                                    uri: comment.user?.avatar || "https://via.placeholder.com/150",
+                                }}
+                                size={40}
+                                style={styles.commentAvatar}
+                            />
+                            <View style={styles.userInfo}>
+                                <Text style={styles.commentUsername}>
+                                    {comment.user?.username || "Anonymous"}
+                                </Text>
+                             
+                            </View>
+                            <TouchableOpacity
+                                onPress={(event) => toggleCommentMenu(event, comment.id)}
+                            >
+                                <MaterialIcons name="more-vert" size={24} color="black" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.commentContentContainer}>
+                            <RenderHtml
+                                contentWidth={width}
+                                source={{ html: comment.content }}
+                                baseStyle={styles.commentContent}
+                            />
+
+                        </View>
+                        <View style={styles.reactionRow}>
+                            <TouchableOpacity
+                                style={styles.reactionButton}
+                                onPress={() => handleCommentReaction(comment.id, "like")}
+                            >
+                                <Text style={styles.reactionIcon}>👍</Text>
+                                <Text style={styles.reactionCount}>{comment.reaction_summary?.like || 0}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.reactionButton}
+                                onPress={() => handleCommentReaction(comment.id, "haha")}
+                            >
+                                <Text style={styles.reactionIcon}>😂</Text>
+                                <Text style={styles.reactionCount}>{comment.reaction_summary?.haha || 0}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.reactionButton}
+                                onPress={() => handleCommentReaction(comment.id, "love")}
+                            >
+                                <Text style={styles.reactionIcon}>❤️</Text>
+                                <Text style={styles.reactionCount}>{comment.reaction_summary?.love || 0}</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Menu
+                            visible={isCommentMenuVisible && currentComment === comment.id}
+                            onDismiss={toggleCommentMenu}
+                            anchor={anchorComment}
+                        >
+                            <Menu.Item
+                                onPress={() => {
+                                    navigation.navigate("EditComment", { comment: comment });
+                                    toggleCommentMenu();
+                                }}
+                                title="Sửa bình luận"
+                            />
+                            <Divider />
+                            <Menu.Item
+                                onPress={() => {
+                                    Alert.alert(
+                                        "Xác nhận xóa",
+                                        "Bạn có chắc chắn muốn xóa bình luận này?",
+                                        [
+                                            {
+                                                text: "Hủy",
+                                                style: "cancel",
+                                            },
+                                            {
+                                                text: "Xóa",
+                                                onPress: () => {
+                                                    handleDeleteComment(comment.id);
+                                                    toggleCommentMenu();
+                                                },
+                                            },
+                                        ],
+                                        { cancelable: false }
+                                    );
+                                }}
+                                title="Xóa bình luận"
+                            />
+                        </Menu>
+                    </View>
+                </View>
+            ))}
+            <AddComment postId={postId} dispatch={dispatch} />
+        </View>
     );
-  };
-  
-  export default CommentList;
+};
+
+const styles = StyleSheet.create({
+    comments: {
+        marginTop: 10,
+    },
+    commentContainer: {
+        marginBottom: 10,
+        backgroundColor: '#f8f8f8',
+        borderRadius: 10,
+        padding: 10
+    },
+
+    commentHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 5,
+    },
+    commentAvatar: {
+        marginRight: 10,
+    },
+    userInfo: {
+        flex: 1,
+    },
+    commentUsername: {
+        fontWeight: "bold",
+        marginBottom: 2
+    },
+    commentContentContainer: {
+        marginBottom: 5
+    },
+    commentContent: {
+        fontSize: 13,
+    },
+    reactionRow: {
+        flexDirection: "row",
+        marginTop: 5,
+    },
+    reactionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 15
+    },
+    reactionIcon: {
+        fontSize: 13,
+        marginRight: 3
+    },
+    reactionCount: {
+        fontSize: 13
+    }
+});
+
+export default CommentList;
