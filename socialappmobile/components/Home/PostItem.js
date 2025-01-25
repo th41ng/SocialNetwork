@@ -1,5 +1,5 @@
 // components/PostItem.js
-import React, { useState,useCallback, useMemo } from 'react';
+import React, { useState,useCallback, useMemo, useContext } from 'react';
 import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import { Avatar, Menu, Divider } from 'react-native-paper';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import CommentList from './CommentList';
 import { fetchData } from "../../configs/APIs";
 import { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { MyUserContext } from "../../configs/UserContext"; 
 const PostItem = ({
     post,
     dispatch,
@@ -19,6 +19,7 @@ const PostItem = ({
     updatedCommentId,
   }) => {
     const navigation = useNavigation();
+    const user = useContext(MyUserContext);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [anchor, setAnchor] = useState({ x: 0, y: 0 });
     const { width } = useWindowDimensions();
@@ -243,41 +244,46 @@ const PostItem = ({
           updatedCommentId={updatedCommentId}
         />
   
-        <Menu visible={isMenuVisible} onDismiss={toggleMenu} anchor={anchor}>
-          <Menu.Item
-            onPress={() => {
-              navigation.navigate("EditPost", { post: post });
-              toggleMenu();
-            }}
-            title="Sửa bài viết"
-          />
-          <Divider />
-          <Menu.Item
-            onPress={() => {
-              Alert.alert(
-                "Xác nhận xóa",
-                "Bạn có chắc chắn muốn xóa bài viết này?",
-                [
-                  {
-                    text: "Hủy",
-                    style: "cancel",
-                  },
-                  {
-                    text: "Xóa",
-                    onPress: () => {
-                      handleDeletePost();
-                      toggleMenu();
-                    },
-                  },
-                ],
-                { cancelable: false }
-              );
-            }}
-            title="Xóa bài viết"
-          />
-        </Menu>
-      </View>
+  <Menu visible={isMenuVisible} onDismiss={toggleMenu} anchor={anchor}>
+                {/* Chỉ hiển thị nếu là chủ bài viết */}
+                {post.user?.id === user.id && (
+                    <>
+                        <Menu.Item
+                            onPress={() => {
+                                navigation.navigate("EditPost", { post: post });
+                                toggleMenu();
+                            }}
+                            title="Sửa bài viết"
+                        />
+                        <Divider />
+                        <Menu.Item
+                            onPress={() => {
+                                Alert.alert(
+                                    "Xác nhận xóa",
+                                    "Bạn có chắc chắn muốn xóa bài viết này?",
+                                    [
+                                        {
+                                            text: "Hủy",
+                                            style: "cancel",
+                                        },
+                                        {
+                                            text: "Xóa",
+                                            onPress: () => {
+                                                handleDeletePost();
+                                                toggleMenu();
+                                            },
+                                        },
+                                    ],
+                                    { cancelable: false }
+                                );
+                            }}
+                            title="Xóa bài viết"
+                        />
+                    </>
+                )}
+            </Menu>
+        </View>
     );
-  };
+};
   
   export default PostItem;
