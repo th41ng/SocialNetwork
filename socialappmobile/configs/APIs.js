@@ -23,6 +23,9 @@ export const endpoints = {
     create_post: "/posts/",
     reactions: "/reactions/",
     comments: "/comments/",
+    // userProfileDetail: (userId) => `/profile/?user_id=${userId}`, 
+    // userPostDetail: (userId) => `/posts/?user_id=${userId}/user-posts/`, 
+    someOneProfile: (userId) => `/someone-profile/?user_id=${userId}`, 
     post_detail: (postId) => `/posts/${postId}/`,
     comment_detail: (commentId) => `/comments/${commentId}/`,
 };

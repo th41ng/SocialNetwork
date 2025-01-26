@@ -167,14 +167,27 @@ const PostItem = ({
     const toggleComments = useCallback(() => {
       dispatch({ type: "TOGGLE_COMMENTS", payload: post.id });
     }, [dispatch, post.id]);
-  
+    
     return (
       <View key={post.id} style={HomeStyles.postContainer}>
         <View style={HomeStyles.postHeader}>
-          <Avatar.Image
-            source={{ uri: post.user.avatar || "https://via.placeholder.com/150" }}
-            size={40}
-          />
+        <TouchableOpacity
+            onPress={() => {
+              console.log("Navigating to SomeOneProfile with userId:", post.user.id); // Log userId
+              navigation.navigate("SomeOneProfile", { userId: post.user.id });
+            }}
+          >
+            <Avatar.Image
+              source={{
+                uri: post.user.avatar
+                  ? post.user.avatar.startsWith("image/upload/")
+                    ? post.user.avatar.replace("image/upload/", "")
+                    : post.user.avatar
+                  : "https://via.placeholder.com/150", // default image
+              }}
+              size={40}
+            />
+        </TouchableOpacity>
           <View style={HomeStyles.headerDetails}>
             <Text style={HomeStyles.username}>{post.user.username}</Text>
             <Text style={HomeStyles.timeText}>

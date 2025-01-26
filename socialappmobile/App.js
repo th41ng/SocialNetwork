@@ -14,6 +14,7 @@ import CreatePost from './components/Home/CreatePost';
 import NotificationListScreen from './components/Notifications/NotificationList';
 import EditPost from './components/Home/EditPost';
 import EditComment from './components/Home/EditComment';
+import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
               /> */}
               <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
               <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
+              <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>
