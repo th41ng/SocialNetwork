@@ -15,6 +15,9 @@ import NotificationListScreen from './components/Notifications/NotificationList'
 import EditPost from './components/Home/EditPost';
 import EditComment from './components/Home/EditComment';
 import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
+import Surveys from './components/Home/Survey';
+import TakeSurvey from './components/Home/TakeSurvey';
+
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -48,6 +51,16 @@ export default function App() {
               <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
               <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
               <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
+              <Stack.Screen 
+                name="Surveys" 
+                component={Surveys} 
+                options={{ headerShown: false }} 
+              />
+               <Stack.Screen 
+                name="TakeSurvey" 
+                component={TakeSurvey} 
+                options={{ title: 'Take Survey' }} 
+              />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>
