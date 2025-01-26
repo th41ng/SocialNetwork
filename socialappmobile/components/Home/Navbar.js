@@ -10,7 +10,7 @@ const Navbar = ({ navigation }) => {
                 <Ionicons name="home-outline" size={28} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity style={HomeStyles.navItem} onPress={() => navigation.navigate("Surveys")}>
-                <Ionicons name="search-outline" size={28} color="#000" />
+                <Ionicons name="reader-outline" size={28} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity style={HomeStyles.navItemCenter} onPress={() => navigation.navigate("CreatePost")}>
                 <View style={HomeStyles.addButton}>

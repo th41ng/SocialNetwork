@@ -178,36 +178,76 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#f8f8f8', 
   },
   title: {
-    fontSize: 22,
+    fontSize: 24, 
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#2c3e50', 
+    textAlign: 'center', 
   },
   questionText: {
     fontSize: 18,
     marginBottom: 20,
+    color: '#34495e', 
   },
   input: {
     borderWidth: 1,
-    borderColor: 'gray',
-    padding: 10,
+    borderColor: '#bdc3c7', 
+    padding: 15,
     marginBottom: 20,
-    borderRadius: 5,
+    borderRadius: 8, 
+    backgroundColor: '#fff', 
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
   },
   option: {
     borderWidth: 1,
-    borderColor: 'gray',
-    padding: 10,
+    borderColor: '#bdc3c7',
+    padding: 15,
     marginBottom: 10,
-    borderRadius: 5,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
   },
   selectedOption: {
-    backgroundColor: 'lightblue',
+    backgroundColor: '#3498db', 
+    borderColor: '#2980b9', 
   },
   optionText: {
     fontSize: 16,
+    color: '#34495e',
   },
+  button: {
+    backgroundColor: '#3498db', 
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 10, 
+  },
+  buttonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: 18
+  },
+  disabledButton: {
+    backgroundColor: '#bdc3c7',
+  }
 });
 
 export default TakeSurvey;
