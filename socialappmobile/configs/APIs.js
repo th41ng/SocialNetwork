@@ -25,6 +25,9 @@ export const endpoints = {
     comments: "/comments/",
     post_detail: (postId) => `/posts/${postId}/`,
     comment_detail: (commentId) => `/comments/${commentId}/`,
+  surveys: "/surveys/", // Thêm endpoint cho khảo sát
+  survey_detail: (surveyId) => `/surveys/${surveyId}/`,
+  survey_responses: `/survey-responses/`,
 };
 
 export const authApis = (token) => {
@@ -94,6 +97,22 @@ export const fetchAllReactions = async () => {
     return allReactions;
   } catch (error) {
     console.error("Failed to fetch all reactions:", error);
+    return [];
+  }
+};
+
+export const fetchAllSurveys = async () => {
+  try {
+    let allSurveys = [];
+    let url = endpoints["surveys"];
+    while (url) {
+      const resSurveys = await fetchData(url);
+      allSurveys = [...allSurveys, ...resSurveys.results];
+      url = resSurveys.next;
+    }
+    return allSurveys;
+  } catch (error) {
+    console.error("Failed to fetch all surveys:", error);
     return [];
   }
 };
