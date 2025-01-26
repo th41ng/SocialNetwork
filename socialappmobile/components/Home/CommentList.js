@@ -282,49 +282,66 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   commentContainer: {
-    marginBottom: 10,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 10,
-    padding: 10
+    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-
   commentHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   commentAvatar: {
-    marginRight: 10,
+    marginRight: 12,
   },
   userInfo: {
     flex: 1,
   },
   commentUsername: {
-    fontWeight: "bold",
-    marginBottom: 2
+    fontWeight: "600",
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
   },
   commentContentContainer: {
-    marginBottom: 5
+    marginBottom: 10,
   },
   commentContent: {
-    fontSize: 13,
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 18,
   },
   reactionRow: {
     flexDirection: "row",
     marginTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    paddingTop: 8,
   },
   reactionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15
+    marginRight: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderRadius: 20,
+    backgroundColor: '#f1f1f1',
   },
   reactionIcon: {
-    fontSize: 13,
-    marginRight: 3
+    fontSize: 14,
+    marginRight: 4,
   },
   reactionCount: {
-    fontSize: 13
-  }
+    fontSize: 13,
+    color: '#555',
+  },
 });
+
 
 export default CommentList;
