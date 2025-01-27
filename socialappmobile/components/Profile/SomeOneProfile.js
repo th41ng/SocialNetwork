@@ -17,7 +17,16 @@ const Profile = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-
+  
+  // Hàm loại bỏ tiền tố "image/upload/" nếu có
+  const removePrefix = (url) => {
+    const prefix = "image/upload/";
+    if (url && url.startsWith(prefix)) {
+      return url.replace(prefix, ""); // Loại bỏ "image/upload/"
+    }
+    return url;
+  };  
+  
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!userId) {
@@ -34,14 +43,7 @@ const Profile = () => {
         // Log dữ liệu người dùng
         console.log("User data received:", user);
 
-        // Hàm loại bỏ tiền tố "image/upload/" nếu có
-        const removePrefix = (url) => {
-          const prefix = "image/upload/";
-          if (url && url.startsWith(prefix)) {
-            return url.replace(prefix, ""); // Loại bỏ "image/upload/"
-          }
-          return url;
-        };
+        
 
         // Lấy avatar và ảnh bìa từ dữ liệu và hiển thị
         const avatarUrl = removePrefix(user.user.avatar) || "https://via.placeholder.com/150";
@@ -70,7 +72,7 @@ const Profile = () => {
     <Card style={ProfileStyles.postCard}>
       <Card.Content>
         <Text style={ProfileStyles.postText}>{post.content}</Text>
-        {post.image && <Image source={{ uri: post.image }} style={ProfileStyles.postImage} />}
+        {post.image && <Image source={{ uri: removePrefix(post.image)  }} style={ProfileStyles.postImage} />}
       </Card.Content>
     </Card>
   );

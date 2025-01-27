@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 const ProfileStyles = StyleSheet.create({
+  
   container: {
     flex: 1,
     padding: 16,
@@ -87,7 +88,24 @@ const ProfileStyles = StyleSheet.create({
     elevation: 4,
   },
   drawerSection: {
-    marginTop: 20,
+    position: "absolute",
+    top: 70,  // Điều chỉnh lại vị trí nếu cần thiết
+    right: 0,  // Đảm bảo Drawer mở ra từ bên phải
+    width: 250,  // Thay đổi chiều rộng để làm cho Drawer rộng hơn
+    backgroundColor: "white",  // Màu nền trắng cho Drawer
+    padding: 20,  // Thêm padding để các mục trong Drawer không bị sát vào nhau
+    borderRadius: 10,  // Bo góc để Drawer đẹp hơn
+    shadowColor: "#000",  // Thêm bóng cho Drawer
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+    zIndex: 100,  // Đảm bảo Drawer nằm trên các phần tử khác
+    height: "100%",  // Đảm bảo Drawer chiếm hết chiều cao màn hình
+  },
+  drawerItem: {
+    color: "#333",  // Màu chữ tối để dễ đọc
+    fontSize: 16,  // Kích thước chữ hợp lý
+    fontWeight: "bold",  // Tạo sự nổi bật cho chữ
   },
   postsContainer: {
     marginTop: 30,
@@ -175,6 +193,15 @@ const ProfileStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
+  postsContainer: { marginHorizontal: 10, marginTop: 20 },
+  postsHeader: { fontSize: 18, fontWeight: "bold" },
+  postCard: { marginBottom: 10 },
+  postText: { fontSize: 16 },
+  postImage: { width: "100%", height: 200, marginTop: 10 },
+  noPostsText: { fontSize: 16, color: "#888", textAlign: "center" },
+  errorContainer: { marginHorizontal: 10, marginTop: 10 },
+  errorText: { color: "red", textAlign: "center" },
 });
+
 
 export default ProfileStyles;
