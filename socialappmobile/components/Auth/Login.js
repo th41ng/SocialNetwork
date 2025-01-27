@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -8,7 +8,7 @@ import {
   View,
   Alert,
 } from "react-native";
-import { Button, TextInput } from "react-native-paper";
+import { Button, TextInput, Switch } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import { MyDispatchContext } from "../../configs/UserContext";
 import AuthStyle from "./AuthStyle";
@@ -19,9 +19,42 @@ const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
+
+
+    useEffect(() => {
+      const autoLogin = async () => {
+        try {
+          const savedUsername = await AsyncStorage.getItem("savedUsername");
+          const savedPassword = await AsyncStorage.getItem("savedPassword");
+          const token = await AsyncStorage.getItem("token");
+          const user = await AsyncStorage.getItem("user");
+    
+          if (token && user) {
+            const parsedUser = JSON.parse(user);
+    
+            if (parsedUser && parsedUser.id) {
+              dispatch({ type: "login", payload: parsedUser });
+              navigation.navigate("Home");
+            } else {
+              console.warn("Thông tin người dùng không hợp lệ.");
+            }
+          } else if (savedUsername && savedPassword) {
+            setUsername(savedUsername);
+            setPassword(savedPassword);
+            setRememberMe(true);
+          }
+        } catch (error) {
+          console.error("Lỗi khi tự động đăng nhập:", error);
+        }
+      };
+    
+      autoLogin();
+    }, []);
+    
 
   const login = async () => {
     try {
@@ -46,45 +79,38 @@ const Login = () => {
         return;
       }
 
-      await AsyncStorage.removeItem("token");
+      if (rememberMe) {
+        await AsyncStorage.setItem("savedUsername", username);
+        await AsyncStorage.setItem("savedPassword", password);
+      } else {
+        await AsyncStorage.removeItem("savedUsername");
+        await AsyncStorage.removeItem("savedPassword");
+      }
+
       await AsyncStorage.setItem("token", res.data.access_token);
 
       const token = await AsyncStorage.getItem("token");
       try {
         const userResponse = await authApis(token).get(endpoints["profile"]);
 
-        // *** KIỂM TRA RESPONSE TỪ API /profile ***
-        console.log("Response từ API /profile:", JSON.stringify(userResponse, null, 2)); // Log response với format đẹp hơn
-
         if (!userResponse || !userResponse.data || !userResponse.data.user) {
-          console.error("Response từ API /profile không hợp lệ:", userResponse);
           Alert.alert("Lỗi đăng nhập", "Lỗi dữ liệu từ máy chủ. Vui lòng liên hệ quản trị viên.");
           return;
         }
 
         const userData = userResponse.data.user;
 
-        if (!userData.id) {
-          console.error("Dữ liệu user trả về không có id:", userData);
-          Alert.alert("Lỗi đăng nhập", "Dữ liệu người dùng bị thiếu ID. Vui lòng liên hệ quản trị viên.");
-          return;
+        if (userData.password_reset_deadline && userData.role === "Giảng viên") {
+          const password_reset_deadline = new Date(userData.password_reset_deadline);
+          const currentTime = new Date();
+          const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
+
+          if (timeDifference > 24) {
+            Alert.alert("Lỗi", "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên.");
+            await AsyncStorage.removeItem("token");
+            return;
+          }
         }
-
-        console.log("userData (sau khi kiểm tra):", userData);
-
-        // Kiểm tra thông tin sinh viên và xác thực mật khẩu (nếu có)
-        if(userData.password_reset_deadline){
-            const password_reset_deadline = new Date(userData.password_reset_deadline);
-            const currentTime = new Date();
-            const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
-
-            if (timeDifference > 24) {
-                Alert.alert("Lỗi", "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên.");
-                await AsyncStorage.removeItem("token");
-                return;
-            }
-        }
-
 
         if (userData.student_id_verified === false && userData.role !== "Giảng viên") {
           Alert.alert("Lỗi", "Tài khoản chưa được xác thực mã sinh viên. Vui lòng liên hệ với quản trị viên.");
@@ -92,18 +118,10 @@ const Login = () => {
           return;
         }
 
-        // *** LƯU DỮ LIỆU VÀO ASYNCSTORAGE ***
-        try {
-          await AsyncStorage.setItem('user', JSON.stringify(userData));
-          console.log('Đã lưu thông tin người dùng vào AsyncStorage:', userData);
-        } catch (error) {
-          console.error('Lỗi khi lưu thông tin người dùng vào AsyncStorage:', error);
-          Alert.alert("Lỗi", "Đã có lỗi xảy ra khi lưu thông tin. Vui lòng thử lại sau.");
-          return;
-        }
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
 
         dispatch({ type: "login", payload: userData });
-        navigation.navigate("UserProfile");
+        navigation.navigate("Home");
       } catch (profileError) {
         console.error("Lỗi khi gọi API /profile:", profileError);
         Alert.alert("Lỗi đăng nhập", "Không thể lấy thông tin người dùng. Vui lòng thử lại.");
@@ -118,13 +136,13 @@ const Login = () => {
     }
   };
 
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={AuthStyle.container}
     >
-      {/* ... (JSX - không thay đổi) */}
-       <TextInput
+      <TextInput
         label="Tên đăng nhập"
         value={username}
         onChangeText={setUsername}
@@ -141,6 +159,12 @@ const Login = () => {
         mode="outlined"
         right={<TextInput.Icon icon="eye" />}
       />
+
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+        <Switch value={rememberMe} onValueChange={setRememberMe} />
+        <Text style={{ marginLeft: 8 }}>Lưu thông tin đăng nhập</Text>
+      </View>
+
       <Button onPress={login} loading={loading} style={AuthStyle.button} icon="login" mode="contained">
         Đăng nhập
       </Button>
@@ -152,6 +176,4 @@ const Login = () => {
   );
 };
 
-
-export default Login; 
-
+export default Login;

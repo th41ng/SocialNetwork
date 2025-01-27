@@ -9,15 +9,15 @@ const Navbar = ({ navigation }) => {
             <TouchableOpacity style={HomeStyles.navItem} onPress={() => navigation.navigate("Home")}>
                 <Ionicons name="home-outline" size={28} color="#000" />
             </TouchableOpacity>
-            <TouchableOpacity style={HomeStyles.navItem}>
-                <Ionicons name="search-outline" size={28} color="#000" />
+            <TouchableOpacity style={HomeStyles.navItem} onPress={() => navigation.navigate("Surveys")}>
+                <Ionicons name="reader-outline" size={28} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity style={HomeStyles.navItemCenter} onPress={() => navigation.navigate("CreatePost")}>
                 <View style={HomeStyles.addButton}>
                     <Ionicons name="add" size={32} color="#FFF" />
                 </View>
             </TouchableOpacity>
-            <TouchableOpacity style={HomeStyles.navItem}>
+            <TouchableOpacity style={HomeStyles.navItem} onPress={()=> navigation.navigate("NotificationList")}>
                 <Ionicons name="notifications-outline" size={28} color="#000" />
             </TouchableOpacity>
             <TouchableOpacity style={HomeStyles.navItem} onPress={() => navigation.navigate("UserProfile")}>

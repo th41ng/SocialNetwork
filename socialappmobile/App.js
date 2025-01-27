@@ -11,7 +11,13 @@ import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
 import HomeScreen from './components/Home/Home';
 import CreatePost from './components/Home/CreatePost';  
-
+import NotificationListScreen from './components/Notifications/NotificationList';
+import EditPost from './components/Home/EditPost';
+import EditComment from './components/Home/EditComment';
+import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
+import Surveys from './components/Home/Survey';
+import TakeSurvey from './components/Home/TakeSurvey';
+import ChatScreen from './components/Messege/Chats';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -29,10 +35,32 @@ export default function App() {
               <Stack.Screen name="UserProfile" component={ProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
               <Stack.Screen name="UserSecurity" component={UserSecurityScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="CreatePost" component={CreatePost} options={{ headerShown: false }} />
+              <Stack.Screen name="NotificationList" component={NotificationListScreen} options={{ headerShown: false }} />
+              {/* <Stack.Screen 
+                name="Home" 
+                component={HomeScreen} 
+                options={{ headerShown: false }} 
+              />
               <Stack.Screen 
                 name="CreatePost" 
                 component={CreatePost} 
                 options={{ headerShown: false }} 
+              /> */}
+              <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
+              <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
+              <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
+              <Stack.Screen name="Chats" component={ChatScreen} options={{ headerShown: false }}/>
+              <Stack.Screen 
+                name="Surveys" 
+                component={Surveys} 
+                options={{ headerShown: false }} 
+              />
+               <Stack.Screen 
+                name="TakeSurvey" 
+                component={TakeSurvey} 
+                options={{ title: 'Take Survey' }} 
               />
             </Stack.Navigator>
           </MyDispatchContext.Provider>

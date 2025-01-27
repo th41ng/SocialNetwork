@@ -1,99 +1,99 @@
 import React, { useContext, useState, useEffect } from "react";
-import { ScrollView, Text, View, Button, Image } from "react-native";
+import {
+  Text,
+  View,
+  Image,
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import { useNavigation } from "@react-navigation/native";
-import { Drawer, IconButton } from "react-native-paper"; // Import Paper components
+import { Drawer, IconButton, Card } from "react-native-paper";
+import Navbar from "../Home/Navbar";
+import APIs, { authApis, endpoints } from "../../configs/APIs";
 import ProfileStyles from "./ProfileStyles";
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import { NavigationContainer } from '@react-navigation/native';
-import { StyleSheet } from 'react-native';
 
 const Profile = () => {
   const user = useContext(MyUserContext);
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
-  
-  // State for controlling the Drawer visibility
-  const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // State for avatar, cover image, and posts
   const [avatar, setAvatar] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [posts, setPosts] = useState([]); 
-
-  // Fetch avatar, cover image, and posts for the user
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const formatImageUrl = (url) => {
+    const prefix = "image/upload/";
+    return url?.includes(prefix) ? url.replace(prefix, "") : url;
+  };
   useEffect(() => {
-    const removePrefix = (url) => {
-      const prefix = "image/upload/";
-      if (url?.includes(prefix)) {
-        return url.replace(prefix, "");
-      }
-      return url;
-    };
-
-    if (user.avatar) {
-      setAvatar(removePrefix(user.avatar));
-    } else {
-      setAvatar("https://via.placeholder.com/150");
-    }
-
-    if (user.cover_image) {
-      setCoverImage(removePrefix(user.cover_image));
-    } else {
-      setCoverImage("https://via.placeholder.com/600x200");
-    }
-
-    setPosts(user.posts || []); 
+    setAvatar(formatImageUrl(user.avatar) || "https://via.placeholder.com/150");
+    setCoverImage(formatImageUrl(user.cover_image) || "https://via.placeholder.com/600x200");
   }, [user]);
 
-  // Function for logging out
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) throw new Error("Token không tồn tại. Vui lòng đăng nhập.");
+
+        const response = await authApis(token).get(endpoints.currentUserPosts);
+        setPosts(response.data);
+      } catch (error) {
+        console.error("Lỗi khi gọi API:", error);
+        setErrorMessage(
+          error.response?.data?.message ||
+          error.message ||
+          "Đã xảy ra lỗi không xác định"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
   const logout = async () => {
     try {
       await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("usavedUsername");
+      await AsyncStorage.removeItem("savedPassword")
+
       dispatch({ type: "logout" });
       navigation.reset({
         index: 0,
         routes: [{ name: "Login" }],
       });
     } catch (error) {
-      console.error("Error during logout:", error);
+      console.error("Lỗi khi đăng xuất:", error);
       alert("Đăng xuất thất bại. Vui lòng thử lại.");
     }
   };
 
-  // Function to open/close the Drawer
   const toggleDrawer = () => setDrawerVisible(!drawerVisible);
 
-  // Navigate to Edit Profile screen
-  const editInfo = () => {
-    navigation.navigate("EditProfile");
-  };
+  const editInfo = () => navigation.navigate("EditProfile");
+  const sercurity = () => navigation.navigate("UserSecurity");
 
-  const sercurity = () => {
-    navigation.navigate("UserSecurity");
-  }
+  const renderPost = ({ item: post }) => (
+    <Card style={ProfileStyles.postCard}>
+      <Card.Content>
+        <Text style={ProfileStyles.postText}>{post.content}</Text>
+        {post.image && <Image source={{ uri: formatImageUrl(post.image)  }} style={ProfileStyles.postImage} />}
+      </Card.Content>
+    </Card>
+  );
 
-  return (
-    <ScrollView style={ProfileStyles.container}>
-      {/* Settings Icon */}
-      <IconButton 
-        icon="cog" 
-        size={30} 
-        onPress={toggleDrawer} 
-        style={ProfileStyles.settingsIcon} 
-      />
-
-      {/* Cover Image */}
-      <View style={ProfileStyles.coverImageContainer}>
-        <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
-      </View>
-
-      {/* Avatar and Info */}
+  const renderHeader = () => (
+    <View>
+      <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
       <View style={ProfileStyles.avatarContainer}>
-        <View style={ProfileStyles.avatarWrapper}>
-          <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
-        </View>
+        <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
       </View>
       <View style={ProfileStyles.profileInfo}>
         <Text style={ProfileStyles.username}>Chào, {user.username || "Người dùng"}</Text>
@@ -101,34 +101,54 @@ const Profile = () => {
         <Text style={ProfileStyles.infoText}>Số điện thoại: {user.phone_number || "Chưa cập nhật"}</Text>
         <Text style={ProfileStyles.infoText}>Vai trò: {user.role || "Chưa xác định"}</Text>
       </View>
-
-      {/* Posts Section */}
       <View style={ProfileStyles.postsContainer}>
-        {posts.length === 0 ? (
-          <Text style={ProfileStyles.noPostsText}>Chưa có bài viết</Text>
-        ) : (
-          posts.map((post, index) => (
-            <View key={index} style={ProfileStyles.postItem}>
-              <Text style={ProfileStyles.postText}>{post.content}</Text>
-            </View>
-          ))
+        <Text style={ProfileStyles.postsHeader}>Bài viết của bạn</Text>
+        {loading && <ActivityIndicator size="large" color="#0000ff" />}
+        {errorMessage && (
+          <View style={ProfileStyles.errorContainer}>
+            <Text style={ProfileStyles.errorText}>{errorMessage}</Text>
+          </View>
         )}
       </View>
+    </View>
+  );
 
-      {/* Drawer for Settings */}
+  return (
+    <View style={ProfileStyles.container}>
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderPost}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={<Text style={ProfileStyles.noPostsText}>Chưa có bài viết</Text>}
+      />
+      <Navbar navigation={navigation} />
+      <IconButton
+        icon="cog"
+        size={30}
+        onPress={toggleDrawer}
+        style={ProfileStyles.settingsIcon}
+      />
       {drawerVisible && (
-        <View style={ProfileStyles.drawerWrapper}>
-          <View style={ProfileStyles.drawerContent}>
-            <Drawer.Section title="" style={ProfileStyles.drawerSection}>
-              <Drawer.Item label="Chỉnh sửa thông tin" onPress={editInfo} />
-              <Drawer.Item label="Đăng xuất" onPress={logout} />
-              <Drawer.Item label="Bảo mật" onPress={sercurity} />
-            </Drawer.Section>
-            <Button title="Close" onPress={toggleDrawer} />
-          </View>
-        </View>
-      )}
-    </ScrollView>
+  <Drawer.Section style={ProfileStyles.drawerSection}>
+    <Drawer.Item
+      label="Chỉnh sửa thông tin"
+      onPress={editInfo}
+      labelStyle={ProfileStyles.drawerItem}  // Áp dụng style cho label
+    />
+    <Drawer.Item
+      label="Đăng xuất"
+      onPress={logout}
+      labelStyle={ProfileStyles.drawerItem}  // Áp dụng style cho label
+    />
+    <Drawer.Item
+      label="Bảo mật"
+      onPress={sercurity}
+      labelStyle={ProfileStyles.drawerItem}  // Áp dụng style cho label
+    />
+  </Drawer.Section>
+)}
+    </View>
   );
 };
 
