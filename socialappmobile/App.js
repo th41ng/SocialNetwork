@@ -17,7 +17,7 @@ import EditComment from './components/Home/EditComment';
 import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
 import Surveys from './components/Home/Survey';
 import TakeSurvey from './components/Home/TakeSurvey';
-
+import ChatScreen from './components/Messege/Chats';
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -51,6 +51,7 @@ export default function App() {
               <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
               <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
               <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
+              <Stack.Screen name="Chats" component={ChatScreen} options={{ headerShown: false }}/>
               <Stack.Screen 
                 name="Surveys" 
                 component={Surveys} 

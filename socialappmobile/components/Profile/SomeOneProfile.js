@@ -117,7 +117,7 @@ const Profile = () => {
  <View style={ProfileStyles.messageButtonContainer}>
           <TouchableOpacity 
             style={ProfileStyles.messageButton} 
-            onPress={() => navigation.navigate('ChatScreen', { userId: userData.user.id })}
+            onPress={() => navigation.navigate('Chats', { userId: userData.user.id })}
           >
             <Text style={ProfileStyles.messageButtonText}>Nhắn tin</Text>
           </TouchableOpacity>
