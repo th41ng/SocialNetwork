@@ -1,0 +1,101 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+
+<div class="module">
+  <h2>User Statistics</h2>
+  <canvas id="userChart" width="800" height="400"></canvas>
+</div>
+
+<div class="module">
+  <h2>Post Statistics</h2>
+  <canvas id="postChart" width="800" height="400"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const userChartCanvas = document.getElementById('userChart').getContext('2d');
+  const postChartCanvas = document.getElementById('postChart').getContext('2d');
+
+  function createChart(canvas, data, label) {
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(item => item.period),
+        datasets: [{
+          label: label,
+          data: data.map(item => item.count),
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // Hàm để fetch dữ liệu và vẽ biểu đồ
+  function updateChart(chartType, period) {
+      const canvas = chartType === 'users' ? userChartCanvas : postChartCanvas;
+      const label = chartType === 'users' ? 'Users' : 'Posts';
+      const urlName = chartType === 'users' ? 'admin:statistic_user_stats' : 'admin:statistic_post_stats';
+      const url = "{% url 'admin:statistic_user_stats' %}?period=" + period;
+
+      // Xóa biểu đồ cũ
+      Chart.getChart(canvas)?.destroy();
+
+      fetch(url)
+          .then(response => response.json())
+          .then(data => createChart(canvas, data.data, `${label} per ${period.charAt(0).toUpperCase() + period.slice(1)}`));
+  }
+
+  // Fetch data ban đầu (theo năm)
+  updateChart('users', 'year');
+  updateChart('posts', 'year');
+
+  // Thêm event listener cho các nút chọn period
+  document.addEventListener('DOMContentLoaded', () => {
+    const periodSelectors = document.querySelectorAll('.period-selector');
+    periodSelectors.forEach(selector => {
+      selector.addEventListener('change', (event) => {
+        const period = event.target.value;
+        const chartType = event.target.dataset.chartType;
+
+        // Cập nhật biểu đồ tương ứng
+        updateChart(chartType, period);
+      });
+    });
+  });
+
+</script>
+
+<div class="module">
+    <h2>Select Period</h2>
+    <div>
+        <h3>User Statistics</h3>
+        <select class="period-selector" data-chart-type="users">
+            <option value="year">Year</option>
+            <option value="month">Month</option>
+            <option value="quarter">Quarter</option>
+        </select>
+    </div>
+    <div>
+        <h3>Post Statistics</h3>
+        <select class="period-selector" data-chart-type="posts">
+            <option value="year">Year</option>
+            <option value="month">Month</option>
+            <option value="quarter">Quarter</option>
+        </select>
+    </div>
+</div>
+
+{{ block.super }}
+
+{% endblock %}

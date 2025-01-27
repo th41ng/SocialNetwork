@@ -22,6 +22,7 @@ class User(AbstractUser):
     cover_image = CloudinaryField('cover_image', null=True, blank=True)
     phone_number = models.CharField(max_length=20, null=True, blank=True,unique=True)
     email = models.CharField(max_length=50,null=False,unique=True)
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     password_reset_deadline = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     student_id_verified = models.BooleanField(default=False)
@@ -60,7 +61,7 @@ class Post(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     category = models.ForeignKey(PostCategory, on_delete=models.CASCADE)
     content = RichTextField()
-    image = CloudinaryField('post_image', null=True, blank=True)
+    image = CloudinaryField('cloudinary_image', null=True, blank=True)
     visibility = models.CharField(max_length=10, choices=[('public', 'Public'), ('private', 'Private')], default='public')
     is_comment_locked = models.BooleanField(default=False)
 
@@ -111,10 +112,10 @@ class Survey(BaseModel):
 class SurveyResponse(BaseModel):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='responses')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    response_data = models.JSONField()  # Changed to JSONField for flexibility
 
     def __str__(self):
         return f"Response by {self.user.username} for {self.survey.title}"
+
 
 class SurveyQuestion(BaseModel):
     survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='questions')
@@ -135,6 +136,20 @@ class SurveyOption(BaseModel):
 
     def __str__(self):
         return self.text
+
+
+class SurveyAnswer(models.Model):
+    response = models.ForeignKey(SurveyResponse, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE)
+    text_answer = models.TextField(blank=True, null=True)  # Dành cho câu hỏi tự luận
+    option = models.ForeignKey(SurveyOption, on_delete=models.CASCADE, blank=True, null=True)  # Dành cho câu hỏi trắc nghiệm
+
+    def __str__(self):
+        return f"Answer to {self.question.text}"
+
+    class Meta:
+        verbose_name = "Câu trả lời khảo sát"
+        verbose_name_plural = "Câu trả lời khảo sát"
 
 class Group(BaseModel):
     name = models.CharField(max_length=100, unique=True)
@@ -170,16 +185,20 @@ class Notification(BaseModel):
             )
         elif self.recipient_group:
             # Gửi email đến tất cả thành viên trong nhóm
-            users = self.recipient_group.members.all()
-            for user in users:
-                send_mail(
-                    self.title,
-                    self.content,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
-
+            group_members = self.recipient_group.members.all()
+            for member in group_members:
+                # Lấy email từ đối tượng user (chứ không phải từ GroupMember)
+                email = member.user.email  # Sửa ở đây
+                if email:
+                    send_mail(
+                        self.title,
+                        self.content,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [email],
+                        fail_silently=False,
+                    )
+                else:
+                    print(f"Không thể gửi email: Thành viên {member.user.username} không có email.")
 
 
 class GroupMember(BaseModel):

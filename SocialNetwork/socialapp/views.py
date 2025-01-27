@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -14,35 +14,63 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.views import APIView
+from django.contrib.auth.hashers import check_password, make_password
 
-from .models import Reaction, Comment, Survey, SurveyResponse, SurveyQuestion, SurveyOption, Role
-from .serializers import ReactionSerializer, CommentSerializer, SurveySerializer, SurveyResponseSerializer, \
-    RoleSerializer, UserSerializer
-
-from rest_framework.exceptions import PermissionDenied
-
-from . import models
-from .models import User, Post, Group, Notification, GroupMember, Event
-from .serializers import UserRegistrationSerializer, UpdatePasswordSerializer, PostSerializer, \
-    ProfileWithPostsSerializer, GroupSerializer, NotificationSerializer, EventSerializer, GroupMemberSerializer
+# Import đầy đủ các serializers và models
+from .models import (
+    Reaction,
+    Comment,
+    Survey,
+    SurveyResponse,
+    SurveyQuestion,
+    SurveyOption,
+    Role,
+    User,
+    Post,
+    Group,
+    Notification,
+    GroupMember,
+    Event,
+    SurveyAnswer,
+    PostCategory
+)
+from .serializers import (
+    ReactionSerializer,
+    CommentSerializer,
+    SurveySerializer,
+    SurveyResponseSerializer,
+    SurveyQuestionSerializer,
+    SurveyOptionSerializer,
+    AnswerSerializer,
+    RoleSerializer,
+    UserSerializer,
+    UserRegistrationSerializer,
+    PostSerializer,
+    ProfileWithPostsSerializer,
+    GroupSerializer,
+    NotificationSerializer,
+    EventSerializer,
+    GroupMemberSerializer,
+    PostCategorySerializer
+)
 
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Q
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
     Xử lý API cho User.
     """
     queryset = User.objects.all()
-    serializer_class = UserSerializer  # Thay đổi thành UserSerializer
+    serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_permissions(self):
         """
         Cung cấp quyền truy cập cho các phương thức khác nhau.
         """
-        if self.action in ['get_current_user', 'update_user']:
+        if self.action in ['get_current_user', 'update_user', 'change_password']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
@@ -63,9 +91,47 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()  # Cập nhật người dùng
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'], url_path='register', permission_classes=[permissions.AllowAny])
+    def register(self, request):
+        """
+        Đăng ký người dùng mới.
+        """
+        serializer = UserRegistrationSerializer(data=request.data)  # Sử dụng UserRegistrationSerializer để đăng ký
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {"message": "Đăng ký thành công!", "user": serializer.data},
+            status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='change-password',
+            permission_classes=[permissions.IsAuthenticated])
+    def change_password(self, request):
+        """
+        Đổi mật khẩu người dùng hiện tại.
+        """
+        user = request.user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
+
+        # Kiểm tra mật khẩu cũ
+        if not check_password(old_password, user.password):
+            return Response({"error": "Mật khẩu hiện tại không đúng."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Kiểm tra xác nhận mật khẩu mới
+        if new_password != confirm_password:
+            return Response({"error": "Mật khẩu mới không khớp."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cập nhật mật khẩu
+        user.password = make_password(new_password)
+        user.password_reset_deadline = None
+        user.save()
+
+        return Response({"message": "Đổi mật khẩu thành công."}, status=status.HTTP_200_OK)
 
 
 class RoleViewSet(viewsets.ModelViewSet):
@@ -87,19 +153,32 @@ class RoleViewSet(viewsets.ModelViewSet):
 
 class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
     """
-    API để lấy thông tin người dùng hiện tại và danh sách bài viết của họ.
+    API để lấy thông tin profile của người dùng cụ thể (hoặc hiện tại) và danh sách bài viết của họ.
     """
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Post.objects.filter(user=self.request.user)
+        """
+        Lấy danh sách bài viết của người dùng hiện tại hoặc người dùng khác (nếu có user_id).
+        """
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+        else:
+            user = self.request.user
+
+        return Post.objects.filter(user=user)
 
     def list(self, request, *args, **kwargs):
         """
-        Trả về thông tin người dùng hiện tại và danh sách bài viết của họ.
+        Trả về thông tin profile của người dùng và danh sách bài viết của họ.
         """
-        # Thông tin người dùng hiện tại
-        user = request.user
+        # Lấy thông tin người dùng từ query params
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+        else:
+            user = request.user
 
         # Danh sách bài viết của người dùng
         posts = Post.objects.filter(user=user).order_by('-created_date')
@@ -113,12 +192,73 @@ class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
         return Response(serializer.data)
 
 
+class SomeOneProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
+    """
+    API để lấy thông tin người dùng khác và danh sách bài viết của họ.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get('user_id')
+        if user_id is None:
+            raise ValidationError("user_id là bắt buộc.")
+
+        # Lấy người dùng thay vì bài viết
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise ValidationError("Người dùng không tồn tại.")
+
+        return Post.objects.filter(user=user)
+
+    def list(self, request, *args, **kwargs):
+        """
+        Trả về thông tin người dùng và danh sách bài viết của họ theo user_id.
+        """
+        user_id = request.query_params.get('user_id')
+
+        if user_id is None:
+            return Response({"detail": "user_id là bắt buộc."}, status=400)
+
+        # Lấy thông tin người dùng
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Người dùng không tồn tại."}, status=404)
+
+        # Danh sách bài viết của người dùng
+        posts = Post.objects.filter(user=user).order_by('-created_date')
+
+        # Kết hợp thông tin người dùng và bài viết
+        serializer = ProfileWithPostsSerializer(instance={
+            "user": user,
+            "posts": posts,
+        }, context={'request': request})
+
+        return Response(serializer.data)
+
+
 class IsAuthenticatedOrReadOnly(BasePermission):
     """
     Quyền truy cập:
     - Cho phép tất cả xem (GET, HEAD, OPTIONS).
     - Yêu cầu đăng nhập với các hành động khác (POST, PUT, DELETE).
     """
+
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+        return request.user and request.user.is_authenticated
+
+
+class IsAuthenticatedOrReadOnly(BasePermission):
+    """
+    Quyền truy cập:
+    - Cho phép tất cả xem (GET, HEAD, OPTIONS).
+    - Yêu cầu đăng nhập với các hành động khác (POST, PUT, DELETE).
+    """
+
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
             return True
@@ -231,10 +371,37 @@ class PostViewSet(viewsets.ModelViewSet):
         post.save()
         return Response({"message": "Đã mở khóa bình luận cho bài viết này."}, status=200)
 
+    @action(methods=['get'], detail=False, url_path='my-posts', permission_classes=[IsAuthenticated])
+    def my_posts(self, request):
+        """
+        Lấy danh sách bài đăng của người dùng hiện tại.
+        """
+        user = request.user
+        posts = Post.objects.filter(user=user).order_by('-created_date')  # Lấy bài đăng theo thứ tự mới nhất
+        serializer = self.get_serializer(posts, many=True)
+        return Response(serializer.data)
+
+
 class ReactionViewSet(viewsets.ModelViewSet):
     queryset = Reaction.objects.all()
     serializer_class = ReactionSerializer
 
+    def create(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            reaction = serializer.save()
+            if reaction:
+                # Nếu thêm/cập nhật cảm xúc thành công
+                return Response(
+                    ReactionSerializer(reaction, context={"request": request}).data,
+                    status=status.HTTP_201_CREATED
+                )
+            else:
+                # Nếu cảm xúc bị xóa
+                return Response({"message": "Reaction removed."}, status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -243,7 +410,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     """
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly] #"""cho phep chưa đăng nhập vẫn xem đc"""
+    permission_classes = [IsAuthenticatedOrReadOnly]  # """cho phep chưa đăng nhập vẫn xem đc"""
 
     def perform_create(self, serializer):
         """
@@ -327,57 +494,181 @@ class CommentViewSet(viewsets.ModelViewSet):
             "reaction_summary": {reaction['reaction_type']: reaction['count'] for reaction in summary}
         })
 
+
 class SurveyViewSet(viewsets.ModelViewSet):
-    queryset = Survey.objects.all()
+    queryset = Survey.objects.filter(status='active')
     serializer_class = SurveySerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         if not self.request.user.is_staff:
             raise PermissionDenied("Chỉ quản trị viên mới có quyền tạo khảo sát.")
-        survey = serializer.save(created_by=self.request.user)
+        serializer.save(created_by=self.request.user)
 
-        # Thêm câu hỏi và đáp án mẫu (nếu cần)
-        questions_data = self.request.data.get('questions', [])
-        for question_data in questions_data:
-            question = SurveyQuestion.objects.create(
-                survey=survey,
-                text=question_data['text'],
-                question_type=question_data['question_type']
-            )
-            if 'options' in question_data:
-                for option_data in question_data['options']:
-                    SurveyOption.objects.create(question=question, text=option_data['text'])
+    def get_queryset(self):
+        # Chỉ trả về các khảo sát đang active, hoặc các khảo sát do user hiện tại tạo (nếu là staff)
+        if self.request.user.is_staff:
+            return Survey.objects.filter(Q(status='active') | Q(created_by=self.request.user))
+        else:
+            return Survey.objects.filter(status='active')
+
+    @action(detail=True, methods=['get'])
+    def statistics(self, request, pk=None):
+        survey = self.get_object()
+        statistics_data = []
+
+        for question in survey.questions.all():
+            question_data = {
+                'question_id': question.id,
+                'question_text': question.text,
+                'question_type': question.question_type,
+                'results': []
+            }
+
+            if question.question_type == 'text':
+                answers = SurveyAnswer.objects.filter(question=question).values_list('text_answer', flat=True)
+                question_data['results'] = list(answers)
+            elif question.question_type == 'multiple_choice':
+                choices = SurveyOption.objects.filter(question=question)
+                for choice in choices:
+                    count = SurveyAnswer.objects.filter(question=question, option=choice).count()
+                    question_data['results'].append({
+                        'choice_text': choice.text,
+                        'count': count
+                    })
+
+            statistics_data.append(question_data)
+
+        return Response(statistics_data)
+
+    @action(detail=True, methods=['patch'])
+    def close_survey(self, request, pk=None):
+        survey = self.get_object()
+        if not request.user.is_staff and request.user != survey.created_by:
+            raise PermissionDenied("Bạn không có quyền đóng khảo sát này.")
+
+        survey.status = 'closed'
+        survey.save()
+        return Response({"message": "Đã đóng khảo sát."}, status=status.HTTP_200_OK)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class SurveyResponseViewSet(viewsets.ModelViewSet):
-    """
-    Xử lý API cho SurveyResponse (Phản hồi khảo sát).
-    """
     queryset = SurveyResponse.objects.all()
     serializer_class = SurveyResponseSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        """
-        Gắn user hiện tại và survey vào phản hồi khảo sát.
-        """
         survey_id = self.request.data.get('survey')
-        response_data = self.request.data.get('response_data', {})
+        # answers_data = self.request.data.get('answers', []) # Dòng này không cần thiết nữa
 
         try:
             survey = Survey.objects.get(id=survey_id)
         except Survey.DoesNotExist:
             raise ValidationError("Khảo sát không tồn tại.")
 
-        # Validate câu trả lời
-        for question in survey.questions.all():
-            question_id = str(question.id)
-            if question.question_type == 'multiple_choice':
-                if response_data.get(question_id) not in [o.text for o in question.options.all()]:
-                    raise ValidationError(f"Invalid response for question: {question.text}")
+        if survey.status == 'closed':
+            raise ValidationError("Khảo sát đã đóng và không thể thêm phản hồi.")
 
+        existing_response = SurveyResponse.objects.filter(user=self.request.user, survey=survey).first()
+        if existing_response:
+            raise ValidationError("Bạn đã trả lời khảo sát này trước đó.")
+
+        # Chỉ lưu SurveyResponse, các SurveyAnswer đã được xử lý trong serializer
         serializer.save(user=self.request.user, survey=survey)
+
+        # Xóa bỏ hoàn toàn phần code tạo SurveyAnswer bên dưới
+        # for answer_data in answers_data:
+        #     question_id = answer_data.get('question')
+        #     text_answer = answer_data.get('text_answer')
+        #     option_id = answer_data.get('option')
+
+        #     try:
+        #         question = SurveyQuestion.objects.get(pk=question_id)
+        #     except SurveyQuestion.DoesNotExist:
+        #         raise ValidationError(f"Câu hỏi với ID {question_id} không tồn tại.")
+
+        #     if question.question_type == 'text':
+        #         SurveyAnswer.objects.create(response=response, question=question, text_answer=text_answer)
+        #     elif question.question_type == 'multiple_choice' and option_id:
+        #         try:
+        #             option = SurveyOption.objects.get(pk=option_id)
+        #             SurveyAnswer.objects.create(response=response, question=question, option=option)
+        #         except SurveyOption.DoesNotExist:
+        #             raise ValidationError(f"Lựa chọn với ID {option_id} không tồn tại.")
+
+
+class SurveyQuestionViewSet(viewsets.ModelViewSet):
+    queryset = SurveyQuestion.objects.all()
+    serializer_class = SurveyQuestionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Lấy survey_id từ request data
+        survey_id = self.request.data.get('survey')
+        if not survey_id:
+            raise ValidationError("Thiếu ID khảo sát.")
+
+        # Kiểm tra xem survey có tồn tại và thuộc quyền sở hữu của user hiện tại không
+        try:
+            survey = Survey.objects.get(id=survey_id)
+            if survey.created_by != self.request.user:
+                raise PermissionDenied("Bạn không có quyền thêm câu hỏi vào khảo sát này.")
+        except Survey.DoesNotExist:
+            raise ValidationError("Khảo sát không tồn tại.")
+
+        # Lưu question và liên kết với survey
+        serializer.save(survey=survey)
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.survey.created_by != self.request.user:
+            raise PermissionDenied("Bạn không có quyền chỉnh sửa câu hỏi trong khảo sát này.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.survey.created_by != self.request.user:
+            raise PermissionDenied("Bạn không có quyền xóa câu hỏi trong khảo sát này.")
+        instance.delete()
+
+
+class SurveyOptionViewSet(viewsets.ModelViewSet):
+    queryset = SurveyOption.objects.all()
+    serializer_class = SurveyOptionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Lấy question_id từ request data
+        question_id = self.request.data.get('question')
+        if not question_id:
+            raise ValidationError("Thiếu ID câu hỏi.")
+
+        # Kiểm tra xem question có tồn tại và thuộc về survey của user hiện tại không
+        try:
+            question = SurveyQuestion.objects.get(id=question_id)
+            if question.survey.created_by != self.request.user:
+                raise PermissionDenied("Bạn không có quyền thêm lựa chọn vào câu hỏi này.")
+        except SurveyQuestion.DoesNotExist:
+            raise ValidationError("Câu hỏi không tồn tại.")
+
+        # Lưu option và liên kết với question
+        serializer.save(question=question)
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.question.survey.created_by != self.request.user:
+            raise PermissionDenied("Bạn không có quyền chỉnh sửa lựa chọn trong câu hỏi này.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.question.survey.created_by != self.request.user:
+            raise PermissionDenied("Bạn không có quyền xóa lựa chọn trong câu hỏi này.")
+        instance.delete()
+
 
 class SurveyStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -400,10 +691,28 @@ class SurveyStatisticsView(APIView):
                     statistics[question.text][option.text] = count
 
         return Response(statistics)
-        instance.delete()  # Xóa bài viết
+        # instance.delete()  # Xóa bài viết
 
 
-#Tạo nhóm chỉ định sự kiện
+# Thêm class SurveyListViewSet
+class SurveyListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Survey.objects.filter(status='active')
+    serializer_class = SurveySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = SurveySerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    # Tạo nhóm chỉ định sự kiện
+
+
 class GroupViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
     """
     API cho phép quản lý các nhóm.
@@ -432,11 +741,13 @@ class AdminPermission(IsAuthenticated):
     """
     Kiểm tra xem người dùng có phải là quản trị viên không.
     """
+
     def has_permission(self, request, view):
         # Kiểm tra nếu người dùng có quyền 'is_staff' (quản trị viên)
         if request.user.is_staff:  # Assuming that the 'is_staff' field determines admin users
             return True
         raise PermissionDenied("You must be an admin to create notifications.")
+
 
 class NotificationViewSet(viewsets.ModelViewSet):
     """
@@ -444,7 +755,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     """
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
-    permission_classes = [AdminPermission]  # Chỉ cho phép quản trị viên
+    permission_classes = [IsAuthenticated]  # Chỉ cho phép quản trị viên
 
     def perform_create(self, serializer):
         """
@@ -482,8 +793,6 @@ class EventViewSet(viewsets.ModelViewSet, generics.RetrieveAPIView):
             Q(created_by=self.request.user) | Q(attendees=self.request.user)
         ).distinct()
 
-
-
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def register(self, request, pk=None):
         """
@@ -504,8 +813,9 @@ class GroupMemberViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
-# Kết thúc code Tạo nhóm chỉ định sự kiện
 
+
+# Kết thúc code Tạo nhóm chỉ định sự kiện
 
 
 class StatisticsView(APIView):
@@ -523,9 +833,13 @@ class StatisticsView(APIView):
         model = User if data_type == 'users' else Post
 
         if period == 'year':
-            data = model.objects.annotate(year=TruncYear('date_joined' if data_type == 'users' else 'created_date')).values('year').annotate(count=Count('id')).order_by('year')
+            data = model.objects.annotate(
+                year=TruncYear('date_joined' if data_type == 'users' else 'created_date')).values('year').annotate(
+                count=Count('id')).order_by('year')
         elif period == 'month':
-            data = model.objects.annotate(month=TruncMonth('date_joined' if data_type == 'users' else 'created_date')).values('month').annotate(count=Count('id')).order_by('month')
+            data = model.objects.annotate(
+                month=TruncMonth('date_joined' if data_type == 'users' else 'created_date')).values('month').annotate(
+                count=Count('id')).order_by('month')
         elif period == 'quarter':
             data = model.objects.annotate(
                 year=TruncYear('date_joined' if data_type == 'users' else 'created_date'),
@@ -540,7 +854,8 @@ class StatisticsView(APIView):
             ]
         else:
             formatted_data = [
-                {"period": item['year'].strftime('%Y') if period == 'year' else item['month'].strftime('%Y-%m'), "count": item['count']}
+                {"period": item['year'].strftime('%Y') if period == 'year' else item['month'].strftime('%Y-%m'),
+                 "count": item['count']}
                 for item in data
             ]
 
