@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ScrollView, StyleSheet, Alert, View } from "react-native";
 import { TextInput, Button, Text } from "react-native-paper";
-import { authApis, endpoints } from "../../configs/APIs";
+import { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -39,7 +39,7 @@ const EditComment = () => {
             });
 
             if (res.status === 200) {
-                Alert.alert("Thông báo", "Cập nhật bình luận thành công!");
+                // Alert.alert("Thông báo", "Cập nhật bình luận thành công!");
                 navigation.navigate("Home", { refreshComment: comment.id });
             } else {
                 console.error("Update comment response:", res);

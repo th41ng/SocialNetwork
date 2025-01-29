@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Alert, View, Image } from "react-native";
-import { TextInput, Button, Menu, Divider, Provider, Text } from "react-native-paper";
-import APIs, { authApis, endpoints } from "../../configs/APIs";
+import { ScrollView, StyleSheet, Alert, View, Image,KeyboardAvoidingView,Platform } from "react-native";
+import { TextInput, Button, Menu, Divider, Text } from "react-native-paper";
+import APIs, { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context"; // Import SafeAreaView
 
 const EditPost = () => {
     const route = useRoute();
@@ -127,7 +128,7 @@ const EditPost = () => {
     };
 
     return (
-        <Provider>
+        <SafeAreaView style={{flex:1}}>
             <ScrollView contentContainerStyle={styles.container}>
                 <TextInput
                     label="Nội dung bài viết"
@@ -177,7 +178,7 @@ const EditPost = () => {
                     Cập nhật bài viết
                 </Button>
             </ScrollView>
-        </Provider>
+        </SafeAreaView>
     );
 };
 

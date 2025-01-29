@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Alert, View, Image } from "react-native";
-import { TextInput, Button, Menu, Divider, Provider, Text } from "react-native-paper";
-import APIs, { authApis, endpoints } from "../../configs/APIs";
+import { ScrollView, StyleSheet, Alert, View, Image,KeyboardAvoidingView,Platform } from "react-native";
+import { TextInput, Button, Menu, Divider, Text } from "react-native-paper";
+import APIs, { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import axios from "axios";
+import { SafeAreaView } from "react-native-safe-area-context"; // Import SafeAreaView
 
 const CreatePost = () => {
     const [content, setContent] = useState("");
@@ -141,67 +142,85 @@ const CreatePost = () => {
     };
 
     return (
-        <Provider>
-            <ScrollView contentContainerStyle={styles.container}>
-                <TextInput
-                    label="Nội dung bài viết"
-                    value={content}
-                    onChangeText={setContent}
-                    mode="outlined"
-                    multiline
-                    numberOfLines={5}
-                    style={styles.input}
-                    placeholder="Nhập nội dung bài viết"
-                />
+        <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container}>
+          <TextInput
+            label="Nội dung bài viết"
+            value={content}
+            onChangeText={setContent}
+            mode="outlined"
+            multiline
+            numberOfLines={5}
+            style={styles.input}
+            placeholder="Nhập nội dung bài viết"
+          />
 
-                <View style={styles.menuContainer}>
-                    <Text style={styles.label}>Danh mục</Text>
-                    <Menu
-                        visible={visible}
-                        onDismiss={closeMenu}
-                        anchor={
-                            <Button
-                                mode="outlined"
-                                onPress={openMenu}
-                                style={styles.menuButton}
-                            >
-                                {categories.find((cat) => cat.id === selectedCategory)?.name || "Chọn danh mục"}
-                            </Button>
-                        }
-                    >
-                        {categories.map((cat) => (
-                            <Menu.Item
-                                key={cat.id}
-                                title={cat.name}
-                                onPress={() => {
-                                    setSelectedCategory(cat.id);
-                                    closeMenu();
-                                }}
-                            />
-                        ))}
-                        <Divider />
-                    </Menu>
-                </View>
-
-                {/* Hiển thị ảnh đã chọn */}
-                {image && <Image source={{ uri: image }} style={{ width: 200, height: 200, alignSelf: 'center' }} />}
-
-                {/* Nút chọn ảnh */}
-                <Button icon="camera" mode="outlined" onPress={pickImage} style={styles.button}>
-                    Chọn ảnh
-                </Button>
-
+          <View style={styles.menuContainer}>
+            <Text style={styles.label}>Danh mục</Text>
+            <Menu
+              visible={visible}
+              onDismiss={closeMenu}
+              anchor={
                 <Button
-                    mode="contained"
-                    onPress={handlePost}
-                    loading={loading}
-                    style={styles.button}
-                    icon="send"
+                  mode="outlined"
+                  onPress={openMenu}
+                  style={styles.menuButton}
                 >
-                    Đăng bài
+                  {
+                    categories.find((cat) => cat.id === selectedCategory)
+                      ?.name || "Chọn danh mục"
+                  }
                 </Button>
-            </ScrollView>
-        </Provider>
+              }
+            >
+              {categories.map((cat) => (
+                <Menu.Item
+                  key={cat.id}
+                  title={cat.name}
+                  onPress={() => {
+                    setSelectedCategory(cat.id);
+                    closeMenu();
+                  }}
+                />
+              ))}
+              <Divider />
+            </Menu>
+          </View>
+
+          {/* Hiển thị ảnh đã chọn */}
+          {image && (
+            <Image
+              source={{ uri: image }}
+              style={{ width: 200, height: 200, alignSelf: "center" }}
+            />
+          )}
+
+          {/* Nút chọn ảnh */}
+          <Button
+            icon="camera"
+            mode="outlined"
+            onPress={pickImage}
+            style={styles.button}
+          >
+            Chọn ảnh
+          </Button>
+
+          <Button
+            mode="contained"
+            onPress={handlePost}
+            loading={loading}
+            style={styles.button}
+            icon="send"
+          >
+            Đăng bài
+          </Button>
+        </ScrollView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
     );
 };
 

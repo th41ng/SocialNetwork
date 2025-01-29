@@ -3,8 +3,7 @@ export const initialState = {
     posts: [],
     reactions: [],
     comments: [],
-    commentReactions: {},
-    surveys: [], // Thêm state cho surveys
+    surveys: [], 
   },
   loading: true,
   visibleComments: {},
@@ -12,16 +11,15 @@ export const initialState = {
 
 export const RESET_REACTIONS = "RESET_REACTIONS";
 export const SET_COMMENTS = "SET_COMMENTS";
-export const UPDATE_COMMENT_REACTIONS = "UPDATE_COMMENT_REACTIONS";
 export const DELETE_POST = "DELETE_POST";
 export const UPDATE_REACTION = "UPDATE_REACTION";
 export const ADD_REACTION = "ADD_REACTION";
 export const DELETE_COMMENT = "DELETE_COMMENT";
 export const UPDATE_COMMENT = "UPDATE_COMMENT";
-export const SET_SURVEYS = "SET_SURVEYS"; // Thêm action để set surveys
-export const ADD_SURVEY = "ADD_SURVEY"; //(tùy chọn) Thêm action để thêm survey
-export const UPDATE_SURVEY = "UPDATE_SURVEY"; // (tùy chọn) Thêm action để cập nhật survey
-export const DELETE_SURVEY = "DELETE_SURVEY"; // (tùy chọn) Thêm action để xóa survey
+export const SET_SURVEYS = "SET_SURVEYS"; 
+export const ADD_SURVEY = "ADD_SURVEY"; 
+export const UPDATE_SURVEY = "UPDATE_SURVEY"; 
+export const DELETE_SURVEY = "DELETE_SURVEY"; 
 
 const reducer = (state = initialState, action) => {
   switch (action.type) {
@@ -103,7 +101,6 @@ const reducer = (state = initialState, action) => {
         data: {
           ...state.data,
           reactions: [],
-          commentReactions: {},
         },
       };
     case UPDATE_REACTION:
@@ -145,17 +142,16 @@ const reducer = (state = initialState, action) => {
           comments: [...state.data.comments, action.payload],
         },
       };
-    case "UPDATE_COMMENT":
-      return {
-        ...state,
-        data: {
-          ...state.data,
-          comments: state.data.comments.map((c) =>
-            c.id === action.payload.id ? action.payload : c
-          ),
-        },
-      };
-    // Thêm case cho surveys
+      case "UPDATE_COMMENT":
+        return {
+          ...state,
+          data: {
+            ...state.data,
+            comments: state.data.comments.map((c) =>
+              c.id === action.payload.id ? action.payload : c
+            ),
+          },
+        };
     case SET_SURVEYS:
       return {
         ...state,
@@ -164,7 +160,6 @@ const reducer = (state = initialState, action) => {
           surveys: action.payload,
         },
       };
-    // (Tùy chọn) Thêm case cho ADD, UPDATE, DELETE survey
     case ADD_SURVEY:
         return {
           ...state,

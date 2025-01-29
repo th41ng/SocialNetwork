@@ -8,6 +8,8 @@ import Navbar from "../Home/Navbar";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context"; // Import SafeAreaView
+
 const initialState = {
     notifications: [],  // Đảm bảo giá trị mặc định là một mảng rỗng
     loading: true,
@@ -90,7 +92,7 @@ const EventList = () => {
   );
 
   return (
-    <PaperProvider>
+    <SafeAreaView style={{flex:1}}>
       <View style={{ flex: 1 }}>
         <View style={{ flex: 1, padding: 10 }}>
           <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 10 }}>
@@ -111,7 +113,7 @@ const EventList = () => {
           <Navbar navigation={navigation} />
    
       </View>
-    </PaperProvider>
+    </SafeAreaView>
   );
 };
 

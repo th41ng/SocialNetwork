@@ -1,16 +1,23 @@
 // components/CommentList.js
 import React, { useState, useCallback, useContext } from "react";
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  TextInput,
+} from "react-native";
 import { Avatar, Menu, Divider } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useWindowDimensions } from 'react-native';
+import { useWindowDimensions } from "react-native";
 import RenderHtml from "react-native-render-html";
 import { useNavigation } from "@react-navigation/native";
-import HomeStyles from "./HomeStyles";
-import AddComment from "./AddComment";
-import { endpoints, authApis } from "../../configs/APIs";
+import HomeStyles from "../HomeStyles";
+import AddComment from "../Comments/AddComment";
+import { endpoints, authApis } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MyUserContext } from "../../configs/UserContext";
+import { MyUserContext } from "../../../configs/UserContext";
 
 const CommentList = ({
   postId,
@@ -27,6 +34,8 @@ const CommentList = ({
   const [anchorComment, setAnchorComment] = useState({ x: 0, y: 0 });
   const [currentComment, setCurrentComment] = useState(null);
   const { width } = useWindowDimensions();
+  const [editingComment, setEditingComment] = useState(null);
+  const [editedCommentContent, setEditedCommentContent] = useState("");
 
   const toggleCommentMenu = (event, commentId) => {
     if (event) {
@@ -75,7 +84,45 @@ const CommentList = ({
     }
   };
 
-  // CommentList.js
+  const handleEditComment = (comment) => {
+    setEditingComment(comment);
+    setEditedCommentContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingComment(null);
+    setEditedCommentContent("");
+  };
+
+  const handleUpdateComment = async () => {
+    if (!editedCommentContent.trim()) {
+      Alert.alert("Lỗi", "Nội dung bình luận không được để trống.");
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const res = await authApis(token).patch(
+        endpoints.comment_detail(editingComment.id),
+        { content: editedCommentContent }
+      );
+
+      if (res.status === 200) {
+        dispatch({
+          type: "UPDATE_COMMENT",
+          payload: res.data,
+        });
+        setEditingComment(null);
+        setEditedCommentContent("");
+      } else {
+        Alert.alert("Lỗi", "Cập nhật bình luận thất bại. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      Alert.alert("Lỗi", "Đã có lỗi xảy ra khi cập nhật bình luận.");
+    }
+  };
+
   const handleCommentReaction = useCallback(
     async (commentId, reactionType) => {
       try {
@@ -138,7 +185,6 @@ const CommentList = ({
             response.status === 201 ||
             response.status === 204)
         ) {
-          // Chỉ dispatch SET_REACTIONS 1 lần
           dispatch({
             type: "SET_REACTIONS",
             payload: newReactions,
@@ -175,7 +221,6 @@ const CommentList = ({
 
   return (
     <View style={styles.comments}>
-      {/* Thêm component AddComment để hiển thị phần thêm bình luận */}
       <AddComment postId={postId} dispatch={dispatch} state={state} />
       {comments.map((comment) => (
         <View key={comment.id} style={styles.commentContainer}>
@@ -193,18 +238,39 @@ const CommentList = ({
                   {comment.user?.username || "Anonymous"}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={(event) => toggleCommentMenu(event, comment.id)}
-              >
-                <MaterialIcons name="more-vert" size={24} color="black" />
-              </TouchableOpacity>
+              {comment.user?.id === user?.id && (
+            <TouchableOpacity
+              onPress={(event) => toggleCommentMenu(event, comment.id)}
+            >
+              <MaterialIcons name="more-vert" size={24} color="black" />
+            </TouchableOpacity>
+          )}
             </View>
             <View style={styles.commentContentContainer}>
-              <RenderHtml
-                contentWidth={width}
-                source={{ html: comment.content }}
-                baseStyle={styles.commentContent}
-              />
+              {editingComment?.id === comment.id ? (
+                <>
+                  <TextInput
+                    value={editedCommentContent}
+                    onChangeText={setEditedCommentContent}
+                    multiline
+                    style={styles.editInput}
+                  />
+                  <View style={styles.editButtons}>
+                    <TouchableOpacity onPress={handleUpdateComment}>
+                      <Text style={styles.updateButton}>Cập nhật</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleCancelEdit}>
+                      <Text style={styles.cancelButton}>Hủy</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <RenderHtml
+                  contentWidth={width}
+                  source={{ html: comment.content }}
+                  baseStyle={styles.commentContent}
+                />
+              )}
             </View>
             <View style={styles.reactionRow}>
               <TouchableOpacity
@@ -212,21 +278,27 @@ const CommentList = ({
                 onPress={() => handleCommentReaction(comment.id, "like")}
               >
                 <Text style={styles.reactionIcon}>👍</Text>
-                <Text style={styles.reactionCount}>{comment.reaction_summary?.like || 0}</Text>
+                <Text style={styles.reactionCount}>
+                  {comment.reaction_summary?.like || 0}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.reactionButton}
                 onPress={() => handleCommentReaction(comment.id, "haha")}
               >
                 <Text style={styles.reactionIcon}>😂</Text>
-                <Text style={styles.reactionCount}>{comment.reaction_summary?.haha || 0}</Text>
+                <Text style={styles.reactionCount}>
+                  {comment.reaction_summary?.haha || 0}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.reactionButton}
                 onPress={() => handleCommentReaction(comment.id, "love")}
               >
                 <Text style={styles.reactionIcon}>❤️</Text>
-                <Text style={styles.reactionCount}>{comment.reaction_summary?.love || 0}</Text>
+                <Text style={styles.reactionCount}>
+                  {comment.reaction_summary?.love || 0}
+                </Text>
               </TouchableOpacity>
             </View>
             <Menu
@@ -234,12 +306,11 @@ const CommentList = ({
               onDismiss={toggleCommentMenu}
               anchor={anchorComment}
             >
-              {/* Chỉ hiển thị nút nếu người dùng là chủ bình luận */}
               {comment.user?.id === user.id && (
                 <>
                   <Menu.Item
                     onPress={() => {
-                      navigation.navigate("EditComment", { comment: comment });
+                      handleEditComment(comment);
                       toggleCommentMenu();
                     }}
                     title="Sửa bình luận"
@@ -283,11 +354,10 @@ const styles = StyleSheet.create({
   },
   commentContainer: {
     marginBottom: 10,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8f8f8",
     borderRadius: 10,
-    padding: 10
+    padding: 10,
   },
-
   commentHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -301,10 +371,10 @@ const styles = StyleSheet.create({
   },
   commentUsername: {
     fontWeight: "bold",
-    marginBottom: 2
+    marginBottom: 2,
   },
   commentContentContainer: {
-    marginBottom: 5
+    marginBottom: 5,
   },
   commentContent: {
     fontSize: 13,
@@ -314,17 +384,35 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   reactionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 15
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 15,
   },
   reactionIcon: {
     fontSize: 13,
-    marginRight: 3
+    marginRight: 3,
   },
   reactionCount: {
-    fontSize: 13
-  }
+    fontSize: 13,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 5,
+  },
+  editButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  updateButton: {
+    color: "blue",
+    marginRight: 10,
+  },
+  cancelButton: {
+    color: "red",
+  },
 });
 
 export default CommentList;
