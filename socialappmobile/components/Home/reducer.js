@@ -1,9 +1,10 @@
+// reducer.js
 export const initialState = {
   data: {
     posts: [],
     reactions: [],
     comments: [],
-    surveys: [], 
+    surveys: [],
   },
   loading: true,
   visibleComments: {},
@@ -16,10 +17,11 @@ export const UPDATE_REACTION = "UPDATE_REACTION";
 export const ADD_REACTION = "ADD_REACTION";
 export const DELETE_COMMENT = "DELETE_COMMENT";
 export const UPDATE_COMMENT = "UPDATE_COMMENT";
-export const SET_SURVEYS = "SET_SURVEYS"; 
-export const ADD_SURVEY = "ADD_SURVEY"; 
-export const UPDATE_SURVEY = "UPDATE_SURVEY"; 
-export const DELETE_SURVEY = "DELETE_SURVEY"; 
+export const SET_SURVEYS = "SET_SURVEYS";
+export const ADD_SURVEY = "ADD_SURVEY";
+export const UPDATE_SURVEY = "UPDATE_SURVEY";
+export const DELETE_SURVEY = "DELETE_SURVEY";
+export const DELETE_REACTION = "DELETE_REACTION"; // Thêm action type mới
 
 const reducer = (state = initialState, action) => {
   switch (action.type) {
@@ -115,7 +117,16 @@ const reducer = (state = initialState, action) => {
           ),
         },
       };
-
+    case DELETE_REACTION:
+        return {
+          ...state,
+          data: {
+            ...state.data,
+            reactions: state.data.reactions.filter(
+              (reaction) => reaction.id !== action.payload
+            ),
+          },
+        };
     case ADD_REACTION:
       return {
         ...state,
@@ -142,16 +153,16 @@ const reducer = (state = initialState, action) => {
           comments: [...state.data.comments, action.payload],
         },
       };
-      case "UPDATE_COMMENT":
-        return {
-          ...state,
-          data: {
-            ...state.data,
-            comments: state.data.comments.map((c) =>
-              c.id === action.payload.id ? action.payload : c
-            ),
-          },
-        };
+    case "UPDATE_COMMENT":
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          comments: state.data.comments.map((c) =>
+            c.id === action.payload.id ? action.payload : c
+          ),
+        },
+      };
     case SET_SURVEYS:
       return {
         ...state,
@@ -161,25 +172,25 @@ const reducer = (state = initialState, action) => {
         },
       };
     case ADD_SURVEY:
-        return {
-          ...state,
-          data: {
-            ...state.data,
-            surveys: [...state.data.surveys, action.payload],
-          },
-        };
-    
-      case UPDATE_SURVEY:
-        return {
-          ...state,
-          data: {
-            ...state.data,
-            surveys: state.data.surveys.map((survey) =>
-              survey.id === action.payload.id ? action.payload : survey
-            ),
-          },
-        };
-    
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          surveys: [...state.data.surveys, action.payload],
+        },
+      };
+
+    case UPDATE_SURVEY:
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          surveys: state.data.surveys.map((survey) =>
+            survey.id === action.payload.id ? action.payload : survey
+          ),
+        },
+      };
+
       case DELETE_SURVEY:
         return {
           ...state,
@@ -188,9 +199,9 @@ const reducer = (state = initialState, action) => {
             surveys: state.data.surveys.filter((survey) => survey.id !== action.payload),
           },
         };
-    default:
-      return state;
-  }
-};
-
-export default reducer;
+      default:
+        return state;
+    }
+  };
+  
+  export default reducer;

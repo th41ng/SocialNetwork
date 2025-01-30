@@ -27,6 +27,8 @@ const CommentList = ({
   state,
   handlePostReaction,
   updatedCommentId,
+  isCommentLocked, // Thêm prop isCommentLocked
+  postUser // Thêm prop postUser
 }) => {
   const user = useContext(MyUserContext);
   const navigation = useNavigation();
@@ -59,7 +61,8 @@ const CommentList = ({
         endpoints.comment_detail(commentId)
       );
 
-      if (comment.data.user.id !== currentUser.id) {
+      // Cho phép người đăng bài xóa bất kỳ bình luận nào trong bài viết của họ
+      if (comment.data.user.id !== currentUser.id && postUser?.id !== currentUser.id) {
         Alert.alert("Lỗi", "Bạn không có quyền xóa bình luận này.");
         return;
       }
@@ -221,7 +224,8 @@ const CommentList = ({
 
   return (
     <View style={styles.comments}>
-      <AddComment postId={postId} dispatch={dispatch} state={state} />
+      {/* Ẩn AddComment nếu isCommentLocked là true */}
+      {!isCommentLocked && <AddComment postId={postId} dispatch={dispatch} state={state} />}
       {comments.map((comment) => (
         <View key={comment.id} style={styles.commentContainer}>
           <View style={styles.comment}>
@@ -238,13 +242,14 @@ const CommentList = ({
                   {comment.user?.username || "Anonymous"}
                 </Text>
               </View>
-              {comment.user?.id === user?.id && (
-            <TouchableOpacity
-              onPress={(event) => toggleCommentMenu(event, comment.id)}
-            >
-              <MaterialIcons name="more-vert" size={24} color="black" />
-            </TouchableOpacity>
-          )}
+              {/* Hiển thị nút "more-vert" cho chủ comment và chủ bài viết */}
+              {(comment.user?.id === user?.id || postUser?.id === user?.id) && (
+                <TouchableOpacity
+                  onPress={(event) => toggleCommentMenu(event, comment.id)}
+                >
+                  <MaterialIcons name="more-vert" size={24} color="black" />
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.commentContentContainer}>
               {editingComment?.id === comment.id ? (
@@ -306,15 +311,19 @@ const CommentList = ({
               onDismiss={toggleCommentMenu}
               anchor={anchorComment}
             >
-              {comment.user?.id === user.id && (
+              {/* Hiển thị menu cho chủ comment và chủ bài viết */}
+              {(comment.user?.id === user?.id || postUser?.id === user?.id) && (
                 <>
-                  <Menu.Item
-                    onPress={() => {
-                      handleEditComment(comment);
-                      toggleCommentMenu();
-                    }}
-                    title="Sửa bình luận"
-                  />
+                {/* Chỉ hiển thị "Sửa" cho chủ comment */}
+                  {comment.user?.id === user?.id && (
+                    <Menu.Item
+                      onPress={() => {
+                        handleEditComment(comment);
+                        toggleCommentMenu();
+                      }}
+                      title="Sửa bình luận"
+                    />
+                  )}
                   <Divider />
                   <Menu.Item
                     onPress={() => {
@@ -348,6 +357,8 @@ const CommentList = ({
     </View>
   );
 };
+
+
 const styles = StyleSheet.create({
   comments: {
     marginTop: 10,

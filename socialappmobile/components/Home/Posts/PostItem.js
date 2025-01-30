@@ -1,5 +1,5 @@
 // components/PostItem.js
-import React, { useState, useCallback, useMemo, useContext } from "react";
+import React, { useState, useCallback, useMemo, useContext, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image, Alert } from "react-native";
 import { Avatar, Menu, Divider } from "react-native-paper";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
@@ -24,6 +24,8 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
   // State cho menu sửa/xóa bài viết
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0 }); // Tọa độ để hiển thị menu
+  // State cho việc khóa/mở khóa bình luận
+  const [isCommentLocked, setIsCommentLocked] = useState(post.is_comment_locked || false);
 
   // Lấy kích thước màn hình
   const { width } = useWindowDimensions();
@@ -31,13 +33,13 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
   /**
    * Ẩn/hiện menu sửa/xóa bài viết.
    */
-  const toggleMenu = (event) => {
+  const toggleMenu = useCallback((event) => {
     if (event) {
       const { nativeEvent } = event;
       setAnchor({ x: nativeEvent.pageX, y: nativeEvent.pageY });
     }
-    setIsMenuVisible(!isMenuVisible);
-  };
+    setIsMenuVisible((prev) => !prev);
+  }, []);
 
   /**
    * Xử lý tương tác (reaction) với bài viết: like, haha, love.
@@ -68,18 +70,16 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
           // Nếu đã có reaction
           if (existingReaction.reaction_type === reactionType) {
             // Nếu reaction type trùng với type hiện tại => xóa reaction
-            await authenticatedApis.delete(
+            response = await authenticatedApis.delete(
               `${endpoints.reactions}${existingReaction.id}/`
             );
 
-            dispatch({
-              type: "SET_REACTIONS",
-              payload: state.data.reactions.filter(
-                (r) => r.id !== existingReaction.id
-              ),
-            });
-
-            response = null; // Gán response = null để không cập nhật lại reaction summary
+            if (response.status === 204) {
+              dispatch({
+                type: "DELETE_REACTION",
+                payload: existingReaction.id
+              });
+            }
           } else {
             // Nếu reaction type khác => cập nhật reaction type
             const payload = { reaction_type: reactionType };
@@ -118,32 +118,28 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
           }
         }
 
-        // Nếu response khác null và status code hợp lệ (200, 201) => cập nhật reaction summary
-        if (
-          response === null ||
-          response.status === 200 ||
-          response.status === 201
-        ) {
-          const summaryResponse = await authenticatedApis.get(
-            `${endpoints.post_detail(post.id)}reactions-summary/`
-          );
+        // Cập nhật reaction summary
+        const summaryResponse = await authenticatedApis.get(
+          `${endpoints.post_detail(post.id)}reactions-summary/`
+        );
 
-          if (summaryResponse.status === 200) {
-            dispatch({
-              type: "UPDATE_REACTIONS",
-              payload: {
-                targetType: "post",
-                postId: post.id,
-                reactionsSummary: summaryResponse.data.reaction_summary,
-              },
-            });
-          }
+        if (summaryResponse.status === 200) {
+          dispatch({
+            type: "UPDATE_REACTIONS",
+            payload: {
+              targetType: "post",
+              postId: post.id,
+              reactionsSummary: summaryResponse.data.reaction_summary,
+            },
+          });
         }
+
       } catch (error) {
         console.error(
           "Error in handleReaction:",
           error.response || error.message
         );
+        // Alert.alert("Lỗi", "Đã có lỗi xảy ra khi tương tác với bài viết."); 
       }
     },
     [state.data.reactions, dispatch, post.id]
@@ -152,7 +148,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
   /**
    * Xử lý xóa bài viết.
    */
-  const handleDeletePost = async () => {
+  const handleDeletePost = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) {
@@ -176,7 +172,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
       console.error("Error deleting post:", error);
       Alert.alert("Lỗi", "Đã có lỗi xảy ra khi xóa bài viết.");
     }
-  };
+  }, [post.id, dispatch]);
 
   /**
    * Lấy danh sách comment cho bài viết hiện tại.
@@ -192,13 +188,47 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
     dispatch({ type: "TOGGLE_COMMENTS", payload: post.id });
   }, [dispatch, post.id]);
 
+  /**
+   * Xử lý khóa/mở khóa bình luận.
+   */
+    const handleToggleCommentLock = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          Alert.alert("Thông báo", "Vui lòng đăng nhập để thực hiện thao tác này!");
+          return;
+        }
+  
+        const res = await authApis(token).patch(endpoints.post_detail(post.id), {
+          is_comment_locked: !isCommentLocked,
+        });
+  
+        if (res.status === 200) {
+          setIsCommentLocked(!isCommentLocked);
+          dispatch({
+            type: "UPDATE_POST",
+            payload: res.data,
+          });
+          Alert.alert("Thông báo", `Đã ${isCommentLocked ? "mở khóa" : "khóa"} bình luận thành công!`);
+        } else {
+          Alert.alert("Lỗi", "Thao tác thất bại. Vui lòng thử lại!");
+        }
+      } catch (error) {
+        console.error("Error toggling comment lock:", error);
+        Alert.alert("Lỗi", "Đã có lỗi xảy ra.");
+      }
+    };
+  // // Sử dụng useEffect để log ra state.data.posts mỗi khi nó thay đổi
+  // useEffect(() => {
+  //   console.log("state.data.posts updated:", state.data.posts);
+  // }, [state.data.posts]);
+
   return (
     <View key={post.id} style={HomeStyles.postContainer}>
       <View style={HomeStyles.postHeader}>
         {/* Avatar và thông tin người đăng */}
         <TouchableOpacity
           onPress={() => {
-            console.log("Navigating to SomeOneProfile with userId:", post.user.id);
             navigation.navigate("SomeOneProfile", { userId: post.user.id });
           }}
         >
@@ -268,9 +298,10 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
         <TouchableOpacity
           style={HomeStyles.interactionButton}
           onPress={toggleComments}
+          disabled={isCommentLocked}
         >
-          <Ionicons name="chatbubble-outline" size={20} color="#333" />
-          <Text style={HomeStyles.reactionText}>
+          <Ionicons name="chatbubble-outline" size={20} color={isCommentLocked ? "#ccc" : "#333"} />
+          <Text style={[HomeStyles.reactionText, isCommentLocked && { color: "#ccc" }]}>
             {getCommentsForPost.length}
           </Text>
         </TouchableOpacity>
@@ -283,11 +314,13 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
       <CommentList
         postId={post.id}
         comments={getCommentsForPost}
-        isVisible={state.visibleComments[post.id]}
+        isVisible={state.visibleComments[post.id] && !isCommentLocked} // Ẩn comment list khi bị khóa
         dispatch={dispatch}
         state={state}
         handlePostReaction={handlePostReaction}
         updatedCommentId={updatedCommentId}
+        isCommentLocked={isCommentLocked} // Truyền trạng thái khóa comment xuống CommentList
+        postUser={post.user}
       />
 
       {/* Menu sửa/xóa bài viết */}
@@ -325,6 +358,14 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                 );
               }}
               title="Xóa bài viết"
+            />
+            <Divider />
+            <Menu.Item
+              onPress={() => {
+                handleToggleCommentLock();
+                toggleMenu();
+              }}
+              title={`${isCommentLocked ? "Mở khóa" : "Khóa"} bình luận`}
             />
           </>
         )}
