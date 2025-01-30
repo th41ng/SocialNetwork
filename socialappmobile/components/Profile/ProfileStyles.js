@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 const ProfileStyles = StyleSheet.create({
-  
   container: {
     flex: 1,
     padding: 16,
@@ -31,9 +30,9 @@ const ProfileStyles = StyleSheet.create({
   },
   avatarContainer: {
     alignItems: 'center',
-    marginTop: -80,
+    marginTop: -40,
   },
-  avatarWrapper: {
+  avatarChange: {
     borderWidth: 5,
     borderColor: '#fff',
     borderRadius: 60,
@@ -64,6 +63,8 @@ const ProfileStyles = StyleSheet.create({
     color: '#666',
     marginVertical: 4,
   },
+
+
   drawerWrapper: {
     position: 'absolute',
     top: 0,
@@ -107,29 +108,8 @@ const ProfileStyles = StyleSheet.create({
     fontSize: 16,  // Kích thước chữ hợp lý
     fontWeight: "bold",  // Tạo sự nổi bật cho chữ
   },
-  postsContainer: {
-    marginTop: 30,
-    paddingHorizontal: 16,
-  },
-  noPostsText: {
-    textAlign: 'center',
-    fontSize: 16,
-    color: '#888',
-  },
-  postItem: {
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  postText: {
-    fontSize: 16,
-    color: '#333',
-  },
+
+
   button: {
     backgroundColor: '#0066cc',
     paddingVertical: 12,
@@ -143,12 +123,14 @@ const ProfileStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // New Styles for improved input and button presentation
+
   formContainer: {
-    marginTop: 20,
+    marginTop: 10,
+    width: "100%",
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 10,
+    width: "100%",
   },
   inputLabel: {
     fontSize: 14,
@@ -163,23 +145,23 @@ const ProfileStyles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 14,
     backgroundColor: '#fff',
+    width: "100%",
   },
   saveButton: {
     marginTop: 20,
     backgroundColor: '#0066cc',
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 10,
+    borderRadius: 25,
     width: '100%',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+    transform: [{ scale: 1.05 }],  // Hiệu ứng khi nhấn
+    marginBottom: 20,
   },
-  logoutButton: {
-    marginTop: 20,
-    backgroundColor: '#d9534f',
-    paddingVertical: 12,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
+
   changeCoverButton: {
     position: 'absolute',
     bottom: 10,
@@ -193,14 +175,32 @@ const ProfileStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
+
+  postAuthorInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   postsContainer: { marginHorizontal: 10, marginTop: 20 },
-  postsHeader: { fontSize: 18, fontWeight: "bold" },
   postCard: { marginBottom: 10 },
   postText: { fontSize: 16 },
-  postImage: { width: "100%", height: 200, marginTop: 10 },
+  postImage: { width: "90%", height: 200, marginTop: 10 },
   noPostsText: { fontSize: 16, color: "#888", textAlign: "center" },
-  errorContainer: { marginHorizontal: 10, marginTop: 10 },
-  errorText: { color: "red", textAlign: "center" },
+  postAuthorName: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  postTime: {
+    fontSize: 10,
+    fontStyle: "italic",
+    alignItems: "flex-start",
+  },
+  miniAvt: {
+    width: 35,
+    height: 35,
+    borderRadius: 60,
+    marginEnd: 10,
+  }
+
 });
 
 

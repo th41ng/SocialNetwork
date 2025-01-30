@@ -63,12 +63,15 @@ const Chats = ({ navigation, route }) => {
 
   return (
     <View style={ChatStyle.container}>
+      <View >
+        Tên người đang nhắn tin
+      </View>
+
       <FlatList
         data={messages}
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderMessage}
         style={ChatStyle.messagesList}
-        inverted // Đảo ngược thứ tự hiển thị tin nhắn
       />
       <View style={ChatStyle.inputContainer}>
         <TextInput
