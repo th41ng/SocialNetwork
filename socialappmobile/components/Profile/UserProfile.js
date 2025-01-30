@@ -7,6 +7,7 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
+import moment from "moment";  // Thêm moment để xử lý thời gian
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +18,7 @@ import ProfileStyles from "./ProfileStyles";
 
 const Profile = () => {
   const user = useContext(MyUserContext);
+  console.log("user profile:", user);
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
 
@@ -79,10 +81,18 @@ const Profile = () => {
 
   const editInfo = () => navigation.navigate("EditProfile");
   const sercurity = () => navigation.navigate("UserSecurity");
-
+ // Hàm tính thời gian đăng bài
+ const formatPostTime = (time) => {
+  return moment(time).fromNow();  // Sử dụng moment để tính thời gian đã trôi qua
+};
   const renderPost = ({ item: post }) => (
     <Card style={ProfileStyles.postCard}>
       <Card.Content>
+          <View style={ProfileStyles.postAuthorInfo}>
+            <Image source={{ uri: avatar }} style={ProfileStyles.miniAvt} />
+            <Text style={ProfileStyles.postAuthorName}>{user.username}</Text>
+          </View>
+        <Text style={ProfileStyles.postTime}>{formatPostTime(post.created_date)}</Text>
         <Text style={ProfileStyles.postText}>{post.content}</Text>
         {post.image && <Image source={{ uri: formatImageUrl(post.image)  }} style={ProfileStyles.postImage} />}
       </Card.Content>
@@ -96,19 +106,7 @@ const Profile = () => {
         <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
       </View>
       <View style={ProfileStyles.profileInfo}>
-        <Text style={ProfileStyles.username}>Chào, {user.username || "Người dùng"}</Text>
-        <Text style={ProfileStyles.infoText}>Email: {user.email || "Chưa cập nhật"}</Text>
-        <Text style={ProfileStyles.infoText}>Số điện thoại: {user.phone_number || "Chưa cập nhật"}</Text>
-        <Text style={ProfileStyles.infoText}>Vai trò: {user.role || "Chưa xác định"}</Text>
-      </View>
-      <View style={ProfileStyles.postsContainer}>
-        <Text style={ProfileStyles.postsHeader}>Bài viết của bạn</Text>
-        {loading && <ActivityIndicator size="large" color="#0000ff" />}
-        {errorMessage && (
-          <View style={ProfileStyles.errorContainer}>
-            <Text style={ProfileStyles.errorText}>{errorMessage}</Text>
-          </View>
-        )}
+        <Text style={ProfileStyles.username}>{user.last_name} {user.first_name}</Text>
       </View>
     </View>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, View, ActivityIndicator, FlatList, Alert, Image,TouchableOpacity } from "react-native";
-import { Avatar, Card } from "react-native-paper"; 
+import { ScrollView, Text, View, ActivityIndicator, FlatList, Alert, Image, TouchableOpacity } from "react-native";
+import { Avatar, Card } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
@@ -9,7 +9,7 @@ import APIs, { endpoints } from "../../configs/APIs";
 const Profile = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { userId } = route.params || {}; 
+  const { userId } = route.params || {};
 
   const [avatar, setAvatar] = useState("");
   const [coverImage, setCoverImage] = useState("");
@@ -17,16 +17,13 @@ const Profile = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  
+
   // Hàm loại bỏ tiền tố "image/upload/" nếu có
   const removePrefix = (url) => {
     const prefix = "image/upload/";
-    if (url && url.startsWith(prefix)) {
-      return url.replace(prefix, ""); // Loại bỏ "image/upload/"
-    }
-    return url;
-  };  
-  
+    return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
+  };
+
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!userId) {
@@ -40,23 +37,12 @@ const Profile = () => {
         const userResponse = await APIs.get(endpoints.someOneProfile(userId));
         const user = userResponse.data;
 
-        // Log dữ liệu người dùng
-        console.log("User data received:", user);
+        // Lấy avatar và ảnh bìa từ dữ liệu
+        setAvatar(removePrefix(user.user.avatar) || "https://via.placeholder.com/150");
+        setCoverImage(removePrefix(user.user.cover_image) || "https://via.placeholder.com/600x200");
 
-        
-
-        // Lấy avatar và ảnh bìa từ dữ liệu và hiển thị
-        const avatarUrl = removePrefix(user.user.avatar) || "https://via.placeholder.com/150";
-        const coverImageUrl = removePrefix(user.user.cover_image) || "https://via.placeholder.com/600x200";
-
-        // Log avatar và cover image để kiểm tra
-        console.log("Avatar URL:", avatarUrl);
-        console.log("Cover Image URL:", coverImageUrl);
-
-        setAvatar(avatarUrl);
-        setCoverImage(coverImageUrl);
         setUserData(user);
-        setPosts(user.posts || []); // Giả sử API trả về các bài viết người dùng
+        setPosts(user.posts || []);
       } catch (error) {
         console.error("Error fetching user profile:", error);
         setErrorMessage(error.message || "Lỗi không xác định");
@@ -68,11 +54,40 @@ const Profile = () => {
     fetchProfileData();
   }, [userId]);
 
+  const renderHeader = () => (
+    <View>
+      <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
+      <View style={ProfileStyles.avatarContainer}>
+        <Image source={{ uri: avatar }} style={ProfileStyles.avatar}/>
+      </View>
+      <View style={ProfileStyles.profileInfo}>
+        {/* Thông tin người dùng */}
+        <Text style={ProfileStyles.username}>{userData?.user?.username}</Text>
+        <Text style={ProfileStyles.infoText}>Email: {userData?.user?.email}</Text>
+        <Text style={ProfileStyles.infoText}>Số điện thoại: {userData?.user?.phone_number}</Text>
+        <Text style={ProfileStyles.infoText}>Vai trò: {userData?.user?.role}</Text>
+      </View>
+      {/* Nút nhắn tin */}
+      <View style={ProfileStyles.messageButtonContainer}>
+        <TouchableOpacity
+          style={ProfileStyles.messageButton}
+          onPress={() => navigation.navigate("Chats", { userId: userData?.user?.id })}
+        >
+          <Text style={ProfileStyles.messageButtonText}>Nhắn tin</Text>
+        </TouchableOpacity>
+      </View>
+      {/* Tiêu đề danh sách bài viết */}
+      <View style={ProfileStyles.postHeaderContainer}>
+        <Text style={ProfileStyles.postHeaderText}>Bài viết</Text>
+      </View>
+    </View>
+  );
+
   const renderPost = ({ item: post }) => (
     <Card style={ProfileStyles.postCard}>
       <Card.Content>
         <Text style={ProfileStyles.postText}>{post.content}</Text>
-        {post.image && <Image source={{ uri: removePrefix(post.image)  }} style={ProfileStyles.postImage} />}
+        {post.image && <Image source={{ uri: removePrefix(post.image) }} style={ProfileStyles.postImage} />}
       </Card.Content>
     </Card>
   );
@@ -80,9 +95,6 @@ const Profile = () => {
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;
   }
-
-  // Log thông tin userData trước khi render
-  console.log("UserData for rendering:", userData);
 
   if (!userData) {
     return (
@@ -93,52 +105,16 @@ const Profile = () => {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={ProfileStyles.scrollViewContainer}>
-        <View>
-          {/* Hiển thị ảnh bìa */}
-          <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
-        </View>
-        <View style={ProfileStyles.avatarContainer}>
-          {/* Sử dụng Avatar.Image để hiển thị avatar */}
-          <Avatar.Image
-            source={{
-              uri: avatar || "https://via.placeholder.com/150" // default image nếu không có avatar
-            }}
-            size={80}
-          />
-        </View>
-        <View style={ProfileStyles.profileInfo}>
-          {/* Hiển thị thông tin người dùng */}
-          <Text style={ProfileStyles.username}>{userData.user.username || "Người dùng"}</Text>
-          <Text style={ProfileStyles.infoText}>Email: {userData.user.email || "Chưa cập nhật"}</Text>
-          <Text style={ProfileStyles.infoText}>Số điện thoại: {userData.user.phone_number || "Chưa cập nhật"}</Text>
-          <Text style={ProfileStyles.infoText}>Vai trò: {userData.user.role || "Chưa xác định"}</Text>
-        </View>
- {/* Nút nhắn tin */}
- <View style={ProfileStyles.messageButtonContainer}>
-          <TouchableOpacity 
-            style={ProfileStyles.messageButton} 
-            onPress={() => navigation.navigate('Chats', { userId: userData.user.id })}
-          >
-            <Text style={ProfileStyles.messageButtonText}>Nhắn tin</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={ProfileStyles.postsContainer}>
-          <Text style={ProfileStyles.postsHeader}>Bài viết của người dùng</Text>
-          {posts.length === 0 ? (
-            <Text style={ProfileStyles.noPostsText}>Chưa có bài viết</Text>
-          ) : (
-            <FlatList
-              data={posts}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderPost}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
-      </ScrollView>
+    <View style={ProfileStyles.container}>
+      {/* Sử dụng FlatList luôn, ngay cả khi không có bài viết */}
+      <FlatList
+        data={posts}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderPost}
+        ListHeaderComponent={renderHeader}
+        ListEmptyComponent={<Text style={ProfileStyles.noPostsText}>Chưa có bài viết</Text>}
+        showsVerticalScrollIndicator={false}
+      />
       <Navbar navigation={navigation} />
     </View>
   );

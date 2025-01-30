@@ -12,6 +12,7 @@ import * as FileSystem from "expo-file-system";
 
 const EditProfile = () => {
   const user = useContext(MyUserContext); // Get user info from Context
+  console.log("user edit:", user);
   const dispatch = useContext(MyDispatchContext); // Get Dispatch from Context
   const navigation = useNavigation();
 
@@ -26,7 +27,8 @@ const EditProfile = () => {
   const [coverImage, setCoverImage] = useState(formatUrl(user.cover_image || "https://via.placeholder.com/600x200"));
   const [email, setEmail] = useState(user.email || "");
   const [phoneNumber, setPhoneNumber] = useState(user.phone_number || "");
-  const [password, setPassword] = useState("");
+  const [last_name, setLastName] = useState(user.last_name ||"");
+  const [first_name, setFirstName] = useState(user.first_name ||"");
 
   // Upload image to Cloudinary
   const uploadImage = async (image) => {
@@ -83,7 +85,7 @@ const EditProfile = () => {
         cover_image: coverImage,
         email,
         phone_number: phoneNumber,
-        ...(password && { password }), // Only send password if provided
+      
       };
 
       // Call update user endpoint with PATCH method
@@ -127,10 +129,31 @@ const EditProfile = () => {
           </TouchableOpacity>
         </View>
 
-        <Text style={ProfileStyles.username}>Hello, {user.username || "User"}</Text>
+        <Text style={ProfileStyles.username}>{user.username || "User"}</Text>
 
         {/* Form inputs */}
         <View style={ProfileStyles.formContainer}>
+
+        <View style={ProfileStyles.inputGroup}>
+            <Text style={ProfileStyles.inputLabel}>Họ</Text>
+            <TextInput
+              style={ProfileStyles.input}
+              placeholder="Enter last name"
+              value={last_name}
+              onChangeText={setLastName}
+            />
+          </View>
+
+          <View style={ProfileStyles.inputGroup}>
+            <Text style={ProfileStyles.inputLabel}>Tên</Text>
+            <TextInput
+              style={ProfileStyles.input}
+              placeholder="Enter first name"
+              value={first_name}
+              onChangeText={setFirstName}
+            />
+          </View>
+
           <View style={ProfileStyles.inputGroup}>
             <Text style={ProfileStyles.inputLabel}>Email</Text>
             <TextInput
@@ -152,15 +175,36 @@ const EditProfile = () => {
           </View>
 
           <View style={ProfileStyles.inputGroup}>
-            <Text style={ProfileStyles.inputLabel}>New Password (optional)</Text>
+            <Text style={ProfileStyles.inputLabel}>Vai trò</Text>
             <TextInput
               style={ProfileStyles.input}
-              placeholder="Enter new password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+              value={user.role}
             />
           </View>
+          
+          {user.role === "Sinh viên" && (
+          <>
+            <View style={ProfileStyles.inputGroup}>
+              <Text style={ProfileStyles.inputLabel}>Mã số sinh viên</Text>
+              <TextInput style={ProfileStyles.input} value={user.student_id} editable={false} />
+            </View>
+            <View style={ProfileStyles.inputGroup}>
+              <Text style={ProfileStyles.inputLabel}>Xác nhận mã sinh viên</Text>
+              <TextInput style={ProfileStyles.input} value={user.student_id_verified} editable={false} />
+            </View>
+          </>
+        )}
+
+
+          <View style={ProfileStyles.inputGroup}>
+            <Text style={ProfileStyles.inputLabel}>Thời hạn reset MK</Text>
+            <TextInput
+              style={ProfileStyles.input}
+              value={user.password_reset_deadline}
+              
+            />
+          </View>
+
         </View>
 
         {/* Save changes button */}
@@ -169,10 +213,7 @@ const EditProfile = () => {
         </Button>
       </View>
 
-      {/* Logout button */}
-      <Button onPress={logout} style={ProfileStyles.logoutButton} mode="contained">
-        Log Out
-      </Button>
+     
     </ScrollView>
   );
 };
