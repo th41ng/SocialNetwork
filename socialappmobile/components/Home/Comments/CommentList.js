@@ -39,6 +39,11 @@ const CommentList = ({
   const [editingComment, setEditingComment] = useState(null);
   const [editedCommentContent, setEditedCommentContent] = useState("");
 
+
+  const formatImageUrl = (url) => {
+    const prefix = "image/upload/";
+    return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
+  };
   const toggleCommentMenu = (event, commentId) => {
     if (event) {
       const { nativeEvent } = event;
@@ -232,7 +237,7 @@ const CommentList = ({
             <View style={styles.commentHeader}>
               <Avatar.Image
                 source={{
-                  uri: comment.user?.avatar || "https://via.placeholder.com/150",
+                  uri: formatImageUrl(comment.user?.avatar) || "https://via.placeholder.com/150",
                 }}
                 size={40}
                 style={styles.commentAvatar}

@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
 import APIs, { endpoints } from "../../configs/APIs";
+import moment from "moment";  // Thêm moment để xử lý thời gian
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -19,7 +20,7 @@ const Profile = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   // Hàm loại bỏ tiền tố "image/upload/" nếu có
-  const removePrefix = (url) => {
+  const formatImageUrl = (url) => {
     const prefix = "image/upload/";
     return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
   };
@@ -38,8 +39,8 @@ const Profile = () => {
         const user = userResponse.data;
 
         // Lấy avatar và ảnh bìa từ dữ liệu
-        setAvatar(removePrefix(user.user.avatar) || "https://via.placeholder.com/150");
-        setCoverImage(removePrefix(user.user.cover_image) || "https://via.placeholder.com/600x200");
+        setAvatar(formatImageUrl(user.user.avatar) || "https://via.placeholder.com/150");
+        setCoverImage(formatImageUrl(user.user.cover_image) || "https://via.placeholder.com/600x200");
 
         setUserData(user);
         setPosts(user.posts || []);
@@ -71,7 +72,11 @@ const Profile = () => {
       <View style={ProfileStyles.messageButtonContainer}>
         <TouchableOpacity
           style={ProfileStyles.messageButton}
-          onPress={() => navigation.navigate("Chats", { userId: userData?.user?.id })}
+          onPress={() => navigation.navigate("Chats", { 
+            userId: userData?.user?.id, 
+            username: userData?.user?.username 
+          })}
+
         >
           <Text style={ProfileStyles.messageButtonText}>Nhắn tin</Text>
         </TouchableOpacity>
@@ -83,11 +88,19 @@ const Profile = () => {
     </View>
   );
 
+  const formatPostTime = (time) => {
+    return moment(time).fromNow();  // Sử dụng moment để tính thời gian đã trôi qua
+  };
   const renderPost = ({ item: post }) => (
     <Card style={ProfileStyles.postCard}>
       <Card.Content>
+          <View style={ProfileStyles.postAuthorInfo}>
+            <Image source={{ uri: avatar }} style={ProfileStyles.miniAvt} />
+            <Text style={ProfileStyles.postAuthorName}>{userData.user.username}</Text>
+          </View>
+        <Text style={ProfileStyles.postTime}>{formatPostTime(post.created_date)}</Text>
         <Text style={ProfileStyles.postText}>{post.content}</Text>
-        {post.image && <Image source={{ uri: removePrefix(post.image) }} style={ProfileStyles.postImage} />}
+        {post.image && <Image source={{ uri: formatImageUrl(post.image)  }} style={ProfileStyles.postImage} />}
       </Card.Content>
     </Card>
   );

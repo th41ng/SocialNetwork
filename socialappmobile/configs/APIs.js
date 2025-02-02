@@ -14,6 +14,7 @@ export const endpoints = {
     // reactions: "/reactions/",
     // comments: "/comments/", 
     notification: "/notifications/",
+    events: "/events/",
     currentUserPosts : "/posts/my-posts/",
     login: "/o/token/",
     register: "/users/register/",

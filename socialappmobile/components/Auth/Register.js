@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Text, TouchableOpacity, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, Image, KeyboardAvoidingView, Platform,View } from 'react-native';
 import { TextInput, Button, Menu, Divider } from 'react-native-paper';
-import * as ImagePicker from 'expo-image-picker';
+
 import { useNavigation } from '@react-navigation/native';
 import AuthStyle from './AuthStyle';
 import APIs, { authApis, endpoints } from "../../configs/APIs";
-import axios from 'axios';
-import * as FileSystem from 'expo-file-system';
+
 const Register = () => {
   const [first_name, setFirstName] = useState("");
   const [last_name, setLastName] = useState("");
@@ -43,80 +42,83 @@ const Register = () => {
  
 
 
-const register = async () => {
-  if (!role) {
-    alert("Vui lòng chọn vai trò");
-    return;
-  }
-
-  // Giảng viên (teachers) do not need to enter their password, but it must be sent with a default value
-  if (role.name !== "Giảng viên") {
-    if (password !== confirmPassword) {
-      alert("Mật khẩu không khớp!");
+  const register = async () => {
+    if (!role) {
+      alert("Vui lòng chọn vai trò");
       return;
     }
-    if (!password || password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự");
+  
+    // Nếu là giảng viên, set mật khẩu mặc định
+    let passwordToSend = password;
+    if (role.name === "Giảng viên" && !password) {
+      passwordToSend = 'ou@123';  // Set mật khẩu mặc định cho Giảng viên
+    }
+  
+    // Kiểm tra mật khẩu đối với các vai trò khác
+    if (role.name !== "Giảng viên") {
+      if (passwordToSend !== confirmPassword) {
+        alert("Mật khẩu không khớp!");
+        return;
+      }
+      if (!passwordToSend || passwordToSend.length < 6) {
+        alert("Mật khẩu phải có ít nhất 6 ký tự");
+        return;
+      }
+    }
+  
+    // Kiểm tra email và số điện thoại
+    if (!email || !email.includes("@")) {
+      alert("Vui lòng nhập email hợp lệ!");
       return;
     }
-  } else {
-    // For teachers, set a default password if not provided
-    if (!password) {
-      setPassword('ou@123');  // Set a default password for Giảng viên
+    if (!phoneNumber || phoneNumber.length < 10) {
+      alert("Số điện thoại không hợp lệ!");
+      return;
     }
-  }
-
-  if (!email || !email.includes("@")) {
-    alert("Vui lòng nhập email hợp lệ!");
-    return;
-  }
-  if (!phoneNumber || phoneNumber.length < 10) {
-    alert("Số điện thoại không hợp lệ!");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    // Prepare data for the registration API
-    const data = {
-      first_name,
-      last_name,
-      username,
-      email,
-      phone_number: phoneNumber,
-      role: role.id, // Use the role ID from the selected role
-      password,
-    };
-
-    // Add student_id if the role is "Sinh viên"
-    if (role.name === "Sinh viên") {
-      data.student_id = studentId;
+  
+    setLoading(true);
+  
+    try {
+      // Prepare data for the registration API
+      const data = {
+        first_name,
+        last_name,
+        username,
+        email,
+        phone_number: phoneNumber,
+        role: role.id, // Use the role ID from the selected role
+        password: passwordToSend, // Gửi mật khẩu đã được xử lý
+      };
+  
+      // Add student_id if the role is "Sinh viên"
+      if (role.name === "Sinh viên") {
+        data.student_id = studentId;
+      }
+  
+      console.log("Data", data);
+  
+      // Make the POST request to register the user
+      const response = await APIs.post(endpoints.register, data, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+  
+      console.log("Registration Success:", response.data); // Log the response on success
+      navigation.navigate("Login");
+    } catch (error) {
+      console.error("Đăng ký lỗi:", error); // Log the error in case of failure
+      if (error.response) {
+        console.error("Error Response:", error.response.data);
+        alert("Lỗi đăng ký: " + error.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!");
+      } else {
+        alert("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-   
-    console.log("DAta",data);
-    // Make the POST request to register the user
-    const response = await APIs.post(endpoints.register, data, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    console.log("Registration Success:", response.data); // Log the response on success
-    navigation.navigate("Login");
-  } catch (error) {
-    console.error("Đăng ký lỗi:", error); // Log the error in case of failure
-    if (error.response) {
-      console.error("Error Response:", error.response.data);
-      alert("Lỗi đăng ký: " + error.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!");
-    } else {
-      alert("Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.");
-    }
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -222,17 +224,12 @@ const register = async () => {
   ))}
   <Divider />
 </Menu>
-
+      <View style={AuthStyle.buttonContainer}>
         <Button
-          onPress={register}
-          loading={loading}
-          style={AuthStyle.button}
-          icon="account-check"
-          mode="contained"
-        >
+          onPress={register} loading={loading} style={AuthStyle.button} icon="account-check" mode="contained">
           Đăng ký
         </Button>
-
+      </View>
         <TouchableOpacity onPress={() => navigation.navigate("Login")} style={AuthStyle.link}>
           <Text style={AuthStyle.linkText}>Đã có tài khoản? Đăng nhập</Text>
         </TouchableOpacity>

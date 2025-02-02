@@ -6,7 +6,7 @@ import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import ChatStyle from "./ChatStyle";
 
 const Chats = ({ navigation, route }) => {
-  const { userId } = route.params; // Lấy userId của người nhận
+  const { userId,username } = route.params; // Lấy userId của người nhận
   const currentUser = useContext(MyUserContext); // Lấy người dùng hiện tại từ Context
 
   const [messages, setMessages] = useState([]); // Danh sách tin nhắn
@@ -63,8 +63,10 @@ const Chats = ({ navigation, route }) => {
 
   return (
     <View style={ChatStyle.container}>
-      <View >
-        Tên người đang nhắn tin
+      <View style={ChatStyle.header}>
+        <Text style={ChatStyle.textheader}>
+          {username}
+        </Text>
       </View>
 
       <FlatList

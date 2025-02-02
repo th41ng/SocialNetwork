@@ -9,6 +9,8 @@ import ProfileStyles from "./ProfileStyles"; // Import styles from ProfileStyles
 import APIs, { authApis, endpoints } from "../../configs/APIs"; // Import APIs
 import axios from "axios";
 import * as FileSystem from "expo-file-system";
+import moment from "moment";
+
 
 const EditProfile = () => {
   const user = useContext(MyUserContext); // Get user info from Context
@@ -124,8 +126,9 @@ const EditProfile = () => {
       {/* Avatar and user info */}
       <View style={ProfileStyles.profileInfo}>
         <View style={ProfileStyles.avatarContainer}>
+        <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
           <TouchableOpacity onPress={changeAvatar} style={ProfileStyles.avatarWrapper}>
-            <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
+            <Text style={ProfileStyles.changAVtIcon}>+</Text>
           </TouchableOpacity>
         </View>
 
@@ -200,8 +203,8 @@ const EditProfile = () => {
             <Text style={ProfileStyles.inputLabel}>Thời hạn reset MK</Text>
             <TextInput
               style={ProfileStyles.input}
-              value={user.password_reset_deadline}
-              
+              value={user.password_reset_deadline ? moment(user.password_reset_deadline).format("DD/MM/YYYY HH:mm") : "N/A"}
+              editable={false}
             />
           </View>
 

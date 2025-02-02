@@ -20,10 +20,12 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);  // Thêm trạng thái cho mật khẩu
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
-
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);  // Đảo ngược trạng thái showPassword
+  };
 
     useEffect(() => {
       const autoLogin = async () => {
@@ -136,39 +138,43 @@ const Login = () => {
     }
   };
 
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={AuthStyle.container}
+      >
+        <TextInput
+          label="Tên đăng nhập"
+          value={username}
+          onChangeText={setUsername}
+          style={AuthStyle.input}
+          mode="outlined"
+          right={<TextInput.Icon icon="account" />}
+        />
+        <TextInput
+          label="Mật khẩu"
+          value={password}
+          onChangeText={setPassword}
+          style={AuthStyle.input}
+          secureTextEntry={!showPassword}  // Nếu showPassword là true thì sẽ không ẩn mật khẩu
+          mode="outlined"
+          right={
+            <TextInput.Icon
+              icon={showPassword ? "eye-off" : "eye"}  // Thay đổi icon khi showPassword thay đổi
+              onPress={togglePasswordVisibility}  // Khi nhấn vào icon "eye", gọi hàm togglePasswordVisibility
+            />
+          }
+        />
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={AuthStyle.container}
-    >
-      <TextInput
-        label="Tên đăng nhập"
-        value={username}
-        onChangeText={setUsername}
-        style={AuthStyle.input}
-        mode="outlined"
-        right={<TextInput.Icon icon="account" />}
-      />
-      <TextInput
-        label="Mật khẩu"
-        value={password}
-        onChangeText={setPassword}
-        style={AuthStyle.input}
-        secureTextEntry
-        mode="outlined"
-        right={<TextInput.Icon icon="eye" />}
-      />
-
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-        <Switch value={rememberMe} onValueChange={setRememberMe} />
-        <Text style={{ marginLeft: 8 }}>Lưu thông tin đăng nhập</Text>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Switch thumbColor={rememberMe ? "#000000" : "#d3d3d3"} trackColor={{ false: "#767577", true: "#81b0ff" }} value={rememberMe} onValueChange={setRememberMe} />
+        <Text style={{ marginLeft: 8}}>Lưu thông tin đăng nhập</Text>
       </View>
-
+      <View style={AuthStyle.buttonContainer}>
       <Button onPress={login} loading={loading} style={AuthStyle.button} icon="login" mode="contained">
         Đăng nhập
       </Button>
-
+      </View>
       <TouchableOpacity onPress={() => navigation.navigate("Register")} style={AuthStyle.link}>
         <Text style={AuthStyle.linkText}>Chưa có tài khoản? Đăng ký ngay</Text>
       </TouchableOpacity>
