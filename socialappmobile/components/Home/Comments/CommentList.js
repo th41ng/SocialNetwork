@@ -7,6 +7,8 @@ import {
   Alert,
   StyleSheet,
   TextInput,
+  Animated, 
+  Easing,
 } from "react-native";
 import { Avatar, Menu, Divider } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -27,8 +29,8 @@ const CommentList = ({
   state,
   handlePostReaction,
   updatedCommentId,
-  isCommentLocked, // Thêm prop isCommentLocked
-  postUser // Thêm prop postUser
+  isCommentLocked, 
+  postUser 
 }) => {
   const user = useContext(MyUserContext);
   const navigation = useNavigation();
@@ -44,6 +46,11 @@ const CommentList = ({
     const prefix = "image/upload/";
     return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
   };
+  // State cho animation
+  const [likeAnimation] = useState(new Animated.Value(0)); 
+  const [hahaAnimation] = useState(new Animated.Value(0)); 
+  const [loveAnimation] = useState(new Animated.Value(0)); 
+
   const toggleCommentMenu = (event, commentId) => {
     if (event) {
       const { nativeEvent } = event;
@@ -131,6 +138,24 @@ const CommentList = ({
     }
   };
 
+  // Hàm animation 
+  const runAnimation = (animationValue) => {
+    Animated.sequence([
+      Animated.timing(animationValue, {
+        toValue: 1.2,
+        duration: 100,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(animationValue, {
+        toValue: 1,
+        friction: 2,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const handleCommentReaction = useCallback(
     async (commentId, reactionType) => {
       try {
@@ -157,7 +182,7 @@ const CommentList = ({
           const existingReaction = newReactions[existingReactionIndex];
           if (existingReaction.reaction_type === reactionType) {
             response = await authenticatedApis.delete(
-              `${endpoints.reactions}${existingReaction.id}/`
+              `<span class="math-inline">\{endpoints\.reactions\}</span>{existingReaction.id}/`
             );
             if (response.status === 204) {
               newReactions.splice(existingReactionIndex, 1);
@@ -165,7 +190,7 @@ const CommentList = ({
           } else {
             const payload = { reaction_type: reactionType };
             response = await authenticatedApis.patch(
-              `${endpoints.reactions}${existingReaction.id}/`,
+              `<span class="math-inline">\{endpoints\.reactions\}</span>{existingReaction.id}/`,
               payload
             );
             if (response.status === 200) {
@@ -212,6 +237,15 @@ const CommentList = ({
             });
           }
         }
+
+        // Chạy animation
+        if (reactionType === "like") {
+          runAnimation(likeAnimation);
+        } else if (reactionType === "haha") {
+          runAnimation(hahaAnimation);
+        } else if (reactionType === "love") {
+          runAnimation(loveAnimation);
+        }
       } catch (error) {
         console.error(
           "Error in handleCommentReaction:",
@@ -220,8 +254,23 @@ const CommentList = ({
         Alert.alert("Lỗi", "Đã có lỗi xảy ra với reaction.");
       }
     },
-    [dispatch, state.data.reactions]
+    [dispatch, state.data.reactions, likeAnimation, hahaAnimation, loveAnimation] // Thêm animation vào dependency
   );
+
+  const likeScale = likeAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.2, 1],
+  });
+
+  const hahaScale = hahaAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.2, 1],
+  });
+
+  const loveScale = loveAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [1, 1.2, 1],
+  });
 
   if (!isVisible) {
     return null;
@@ -283,33 +332,41 @@ const CommentList = ({
               )}
             </View>
             <View style={styles.reactionRow}>
-              <TouchableOpacity
-                style={styles.reactionButton}
-                onPress={() => handleCommentReaction(comment.id, "like")}
-              >
-                <Text style={styles.reactionIcon}>👍</Text>
-                <Text style={styles.reactionCount}>
-                  {comment.reaction_summary?.like || 0}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.reactionButton}
-                onPress={() => handleCommentReaction(comment.id, "haha")}
-              >
-                <Text style={styles.reactionIcon}>😂</Text>
-                <Text style={styles.reactionCount}>
-                  {comment.reaction_summary?.haha || 0}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.reactionButton}
-                onPress={() => handleCommentReaction(comment.id, "love")}
-              >
-                <Text style={styles.reactionIcon}>❤️</Text>
-                <Text style={styles.reactionCount}>
-                  {comment.reaction_summary?.love || 0}
-                </Text>
-              </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                <TouchableOpacity
+                  style={styles.reactionButton}
+                  onPress={() => handleCommentReaction(comment.id, "like")}
+                >
+                  <Text style={styles.reactionIcon}>👍</Text>
+                  <Text style={styles.reactionCount}>
+                    {comment.reaction_summary?.like || 0}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+
+              <Animated.View style={{ transform: [{ scale: hahaScale }] }}>
+                <TouchableOpacity
+                  style={styles.reactionButton}
+                  onPress={() => handleCommentReaction(comment.id, "haha")}
+                >
+                  <Text style={styles.reactionIcon}>😂</Text>
+                  <Text style={styles.reactionCount}>
+                    {comment.reaction_summary?.haha || 0}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+
+              <Animated.View style={{ transform: [{ scale: loveScale }] }}>
+                <TouchableOpacity
+                  style={styles.reactionButton}
+                  onPress={() => handleCommentReaction(comment.id, "love")}
+                >
+                  <Text style={styles.reactionIcon}>❤️</Text>
+                  <Text style={styles.reactionCount}>
+                    {comment.reaction_summary?.love || 0}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
             </View>
             <Menu
               visible={isCommentMenuVisible && currentComment === comment.id}
@@ -405,11 +462,11 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   reactionIcon: {
-    fontSize: 13,
+    fontSize: 1.3 * 13,
     marginRight: 3,
   },
   reactionCount: {
-    fontSize: 13,
+    fontSize: 1 * 13,
   },
   editInput: {
     borderWidth: 1,
