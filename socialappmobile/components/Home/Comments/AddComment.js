@@ -72,7 +72,7 @@ const AddComment = ({ postId, dispatch }) => {
             title="Bình luận"
             onPress={handleAddComment}
             disabled={!content.trim() || loading}
-            color="#2196F3" 
+            color="#000000" 
         />
     </SafeAreaView>
 );

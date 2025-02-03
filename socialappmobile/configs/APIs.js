@@ -21,6 +21,7 @@ export const endpoints = {
     profile: "/profile/",
     getRoles: "/roles/",
     posts: "/posts/",
+    post_categories: "/post-categories/",
     create_post: "/posts/",
     reactions: "/reactions/",
     comments: "/comments/",

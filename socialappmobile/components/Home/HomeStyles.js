@@ -37,7 +37,7 @@ const HomeStyles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: "#007AFF",
+        backgroundColor: "#000000",
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",

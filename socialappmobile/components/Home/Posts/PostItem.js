@@ -11,6 +11,7 @@ import CommentList from "../Comments/CommentList";
 import { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../../configs/UserContext";
+import moment from "moment";
 
 /**
 * Component hiển thị một bài viết (post) trong danh sách bài viết.
@@ -289,6 +290,11 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
             Alert.alert("Lỗi", "Đã có lỗi xảy ra.");
         }
     };
+
+
+    // Chuyển đổi thời gian tạo bài viết từ timestamp sang dạng "X phút trước"
+    const timeAgo = moment(post.created_date).fromNow(); // Sử dụng moment.js để hiển thị thời gian
+
     // // Sử dụng useEffect để log ra state.data.posts mỗi khi nó thay đổi
     // useEffect(() => {
     // console.log("state.data.posts updated:", state.data.posts);
@@ -332,9 +338,8 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                 </TouchableOpacity>
                 <View style={HomeStyles.headerDetails}>
                     <Text style={HomeStyles.username}>{post.user.username}</Text>
-                    <Text style={HomeStyles.timeText}>
-                        {new Date(post.created_date).toLocaleTimeString()}
-                    </Text>
+                    <Text style={HomeStyles.timeText}>{timeAgo}</Text> 
+
                 </View>
 
                 {/* Nút "more-vert" - chỉ hiển thị cho chủ bài viết */}
