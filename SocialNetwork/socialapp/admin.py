@@ -3,8 +3,7 @@ from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from rest_framework.exceptions import PermissionDenied
 from socialapp_api import settings
-from .models import Role, PostCategory, Post, Comment, Reaction, Survey, SurveyResponse, Statistic, SurveyQuestion, \
-    SurveyOption, SurveyAnswer
+from .models import Role, PostCategory, Post, Comment, Reaction, Survey, SurveyResponse, Statistic,  SurveyQuestion, SurveyOption, SurveyAnswer
 from django.utils.html import format_html
 from django.db.models import Count
 from django.db.models.functions import TruncYear, TruncMonth, ExtractQuarter
@@ -26,25 +25,22 @@ import html
 # User model
 User = get_user_model()
 
-
 class RoleAdmin(admin.ModelAdmin):
     list_display = ['name']
     search_fields = ['name']
 
-
 admin.site.register(Role, RoleAdmin)
-
 
 # User Admin
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active',
-                    'student_id_verified']
+    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'student_id_verified']
     list_filter = ['role', 'is_active', 'student_id_verified']
     search_fields = ['username', 'first_name', 'last_name', 'student_id', 'email']
     readonly_fields = ['password_reset_deadline']
-    actions = ['mark_student_id_verified', 'extend_password_reset_deadline']
+    actions = ['mark_student_id_verified','extend_password_reset_deadline']
 
-    # Xác thực mã sinh viên
+
+# Xác thực mã sinh viên
     def mark_student_id_verified(self, request, queryset):
         """Đánh dấu mã sinh viên người được chọn đã xác thực"""
         if not queryset:
@@ -76,7 +72,7 @@ class UserAdmin(admin.ModelAdmin):
         else:
             self.message_user(request, "Tất cả người dùng đã được xác thực mã sinh viên.")
 
-    # Gia hạn tgian reset mk
+# Gia hạn tgian reset mk
     def extend_password_reset_deadline(self, request, queryset):
         """
          Gia hạn thời gian đổi mật khẩu cho người dùng được chọn.
@@ -148,9 +144,7 @@ class UserAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-
 admin.site.register(User, UserAdmin)
-
 
 # --- Quản lý Post ---
 
@@ -158,7 +152,6 @@ admin.site.register(User, UserAdmin)
 class PostCategoryAdmin(admin.ModelAdmin):
     list_display = ['name']
     search_fields = ['name']
-
 
 admin.site.register(PostCategory, PostCategoryAdmin)
 
@@ -170,12 +163,12 @@ class PostAdmin(admin.ModelAdmin):
     search_fields = ['content', 'user__username']
     actions = ['delete_selected_posts']
 
+
     def delete_selected_posts(self, request, queryset):
         """Xóa bài viết dc chọn"""
         queryset.delete()
 
     delete_selected_posts.short_description = "Delete selected posts"
-
 
 admin.site.register(Post, PostAdmin)
 
@@ -189,18 +182,16 @@ class CommentAdmin(admin.ModelAdmin):
     search_fields = ['content', 'user__username']
     actions = ['delete_selected_comments', 'edit_selected_comments']
 
+
     def delete_selected_comments(self, request, queryset):
         """xóa cmt được chọn"""
         queryset.update(is_deleted=True)
-
     delete_selected_comments.short_description = "Delete selected comments"
 
     def edit_selected_comments(self, request, queryset):
         """edit cmt"""
         pass
-
     edit_selected_comments.short_description = "Edit selected comments"
-
 
 admin.site.register(Comment, CommentAdmin)
 
@@ -215,7 +206,6 @@ class ReactionAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Reaction, ReactionAdmin)
-
 
 # --- QUản lý Survey
 
@@ -239,7 +229,6 @@ class SurveyResponseInline(admin.TabularInline):
     extra = 0
     inlines = [SurveyAnswerInline]
 
-
 # Survey
 @admin.register(Survey)
 class SurveyAdmin(admin.ModelAdmin):
@@ -252,7 +241,6 @@ class SurveyAdmin(admin.ModelAdmin):
 
     def response_count(self, obj):
         return obj.responses.count()
-
     response_count.short_description = 'Số lượng phản hồi'
 
     def close_selected_surveys(self, request, queryset):
@@ -295,8 +283,7 @@ class SurveyAdmin(admin.ModelAdmin):
         """URL custom cho trang thống kê khảo sát"""
         urls = super().get_urls()
         custom_urls = [
-            path('<int:survey_id>/statistics/', self.admin_site.admin_view(self.survey_statistics),
-                 name="survey-statistics"),
+            path('<int:survey_id>/statistics/', self.admin_site.admin_view(self.survey_statistics), name="survey-statistics"),
         ]
         return custom_urls + urls
 
@@ -314,8 +301,7 @@ class SurveyAdmin(admin.ModelAdmin):
             }
             # Xu ly cau hoi dang Text
             if question.question_type == 'text':
-                answers = SurveyAnswer.objects.filter(question=question).order_by('id').values_list('text_answer',
-                                                                                                    flat=True)
+                answers = SurveyAnswer.objects.filter(question=question).order_by('id').values_list('text_answer', flat=True)
 
                 if answers.exists():
                     paginator = Paginator(answers, 5)
@@ -348,7 +334,6 @@ class SurveyAdmin(admin.ModelAdmin):
             'current_path': current_path,
         })
 
-
 # SurveyQuestion
 @admin.register(SurveyQuestion)
 class SurveyQuestionAdmin(admin.ModelAdmin):
@@ -372,7 +357,6 @@ class SurveyQuestionAdmin(admin.ModelAdmin):
         if obj is None:
             return True
         return request.user.is_superuser or obj.survey.created_by == request.user
-
 
 # SurveyOption
 @admin.register(SurveyOption)
@@ -429,7 +413,7 @@ class SurveyResponseAdmin(admin.ModelAdmin):
         return request.user.is_superuser or obj.survey.created_by == request.user
 
 
-# SurveyAnswer
+#SurveyAnswer
 @admin.register(SurveyAnswer)
 class SurveyAnswerAdmin(admin.ModelAdmin):
     list_display = ['response', 'question', 'text_answer', 'option']
@@ -468,6 +452,22 @@ class GroupAdmin(admin.ModelAdmin):
     ordering = ['-created_date']
     list_per_page = 20
     inlines = [GroupMemberInline]
+    readonly_fields = ['created_by']  # Make 'created_by' readonly
+
+    def save_model(self, request, obj, form, change):
+        """
+        Set the created_by field to the logged-in user when creating a new Group.
+        """
+        if not change:  # Only set created_by on creation, not on edit
+            obj.created_by = request.user
+
+        # If the user is not an admin, raise an error
+        if not request.user.is_staff:
+            raise PermissionDenied("Only admin can create or edit groups.")
+
+        # Save the model
+        super().save_model(request, obj, form, change)
+
 
 
 # --- QUản lý Thông báo ---
@@ -535,8 +535,6 @@ class NotificationAdmin(admin.ModelAdmin):
                 list(email_list),  # Chuyển set về list
                 fail_silently=False,
             )
-
-
 # --- Quản lý Event ---
 
 @admin.register(Event)
@@ -546,10 +544,24 @@ class EventAdmin(admin.ModelAdmin):
     list_filter = ['start_time', 'end_time']
     ordering = ['-start_time']
     list_per_page = 20
+    readonly_fields = ['created_by']  # Make 'created_by' readonly
+
+    def save_model(self, request, obj, form, change):
+        """
+        Set the created_by field to the logged-in user when creating a new Event.
+        """
+        if not change:  # Only set created_by on creation, not on edit
+            obj.created_by = request.user
+
+        # If the user is not an admin, raise an error
+        if not request.user.is_staff:
+            raise PermissionDenied("Only admin can create or edit events.")
+
+        # Save the model
+        super().save_model(request, obj, form, change)
 
 
 # --- Quản lý statistic ---
-
 
 # Statistic
 class StatisticAdmin(admin.ModelAdmin):
@@ -561,8 +573,8 @@ class StatisticAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('user_stats/', self.admin_site.admin_view(self.user_stats), name='statistic_user_stats'),
-            path('post_stats/', self.admin_site.admin_view(self.post_stats), name='statistic_post_stats'),
+            path('user_stats/', self.admin_site.admin_view(self.user_stats), name='user_stats'),
+            path('post_stats/', self.admin_site.admin_view(self.post_stats), name='post_stats'),
         ]
         return custom_urls + urls
 
@@ -590,6 +602,7 @@ class StatisticAdmin(admin.ModelAdmin):
             ).values('year', 'quarter').annotate(count=Count('id')).order_by('year', 'quarter')
         else:
             data = []
+
 
         if period == 'quarter':
             formatted_data = [
