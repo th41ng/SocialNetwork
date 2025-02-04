@@ -207,25 +207,9 @@ const EditProfile = () => {
               <Text style={ProfileStyles.inputLabel}>Mã số sinh viên</Text>
               <TextInput style={ProfileStyles.input} value={user.student_id} editable={false} />
             </View>
-            {/* <View style={ProfileStyles.inputGroup}>
-              <Text style={ProfileStyles.inputLabel}>Xác nhận mã sinh viên</Text>
-              <TextInput style={ProfileStyles.input} value={user.student_id_verified} editable={false} />
-            </View> */}
           </>
         )}
-
-
-          <View style={ProfileStyles.inputGroup}>
-            <Text style={ProfileStyles.inputLabel}>Thời hạn reset MK</Text>
-            <TextInput
-              style={ProfileStyles.input}
-              value={user.password_reset_deadline ? moment(user.password_reset_deadline).format("DD/MM/YYYY HH:mm") : "Không giới hạn"}
-              editable={false}
-            />
-          </View>
-
         </View>
-
         {/* Save changes button */}
         <Button mode="contained" onPress={saveChanges} style={ProfileStyles.saveButton}>
           Save Changes

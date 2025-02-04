@@ -48,12 +48,12 @@ const UserSecurity = () => {
           },
         }
       );
-
+      
       // Xử lý thành công
       Alert.alert("Thành công", response.data.message || "Mật khẩu đã được thay đổi.");
       navigation.goBack();
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || "Đã xảy ra lỗi. Vui lòng thử lại.";
+      const errorMessage = error.response?.data?.detail || "Sai mật khẩu hiện tại.";
       Alert.alert("Lỗi", errorMessage);
     } finally {
       setLoading(false); // Dừng loading khi nhận được phản hồi từ server

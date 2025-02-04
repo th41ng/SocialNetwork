@@ -112,10 +112,12 @@ const ProfileStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#555",
+    marginLeft:10,
     marginBottom: 4, // Space between name and time
   },
   postTime: {
     fontSize: 12,
+    marginLeft:10,
     color: "#888",
   },
   

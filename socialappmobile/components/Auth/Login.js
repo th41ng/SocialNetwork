@@ -117,8 +117,8 @@ const Login = () => {
           const password_reset_deadline = new Date(userData.password_reset_deadline);
           const currentTime = new Date();
           const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
-
-          if (timeDifference > 24) {
+          console.log("timDF:",timeDifference);
+          if (timeDifference > 0) {
             Alert.alert("Lỗi", "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên.");
             await AsyncStorage.removeItem("token");
             return;
@@ -142,8 +142,7 @@ const Login = () => {
         return;
       }
     } catch (loginError) {
-      console.error("Login error:", loginError);
-      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
+      Alert.alert("Lỗi", "Đăng nhập thất bại.");
     } finally {
       setLoading(false);
     }

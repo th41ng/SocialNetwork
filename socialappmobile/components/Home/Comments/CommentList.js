@@ -96,7 +96,7 @@ const CommentList = ({
       );
 
       if (res.status === 204) {
-        Alert.alert("Thông báo", "Xóa bình luận thành công!");
+        // Alert.alert("Thông báo", "Xóa bình luận thành công!");
 
         dispatch({
           type: "DELETE_COMMENT",

@@ -8,7 +8,7 @@ import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import ChatStyle from "./ChatStyle";
 
 const Chats = ({ navigation, route }) => {
-  const { userId,username } = route.params; // Lấy userId của người nhận
+  const { userId, username } = route.params; // Lấy userId của người nhận
   const currentUser = useContext(MyUserContext); // Lấy người dùng hiện tại từ Context
 
   const [messages, setMessages] = useState([]); // Danh sách tin nhắn
@@ -19,11 +19,13 @@ const Chats = ({ navigation, route }) => {
     currentUser.id < userId
       ? `${currentUser.id}_${userId}`
       : `${userId}_${currentUser.id}`;
-  console.log("userId:", userId);
-  console.log("currentUserId:",currentUser.id );
-  console.log("chatId:", chatId);
-  // Lấy dữ liệu tin nhắn từ Firebase
+
   useEffect(() => {
+    // Đặt log chỉ khi chatId thay đổi (chỉ chạy một lần khi component mount)
+    console.log("userId:", userId);
+    console.log("currentUserId:", currentUser.id);
+    console.log("chatId:", chatId);
+
     const messagesRef = ref(database, `chats/${chatId}`);
     const unsubscribe = onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
@@ -32,7 +34,7 @@ const Chats = ({ navigation, route }) => {
     });
 
     return () => unsubscribe(); // Hủy đăng ký khi rời màn hình
-  }, [chatId]);
+  }, [chatId]); // Chỉ chạy lại khi chatId thay đổi
 
   // Hàm gửi tin nhắn
   const sendMessage = async () => {
@@ -89,4 +91,3 @@ const Chats = ({ navigation, route }) => {
 };
 
 export default Chats;
-
