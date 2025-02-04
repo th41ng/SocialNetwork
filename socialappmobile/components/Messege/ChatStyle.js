@@ -5,6 +5,7 @@ const ChatStyle = StyleSheet.create({
     flex: 1,
     // backgroundColor: "#f2f2f2",
     // padding: 10,
+    marginTop:20,
   },
   messagesList: {
     flex: 1,
@@ -62,23 +63,44 @@ const ChatStyle = StyleSheet.create({
     fontWeight: "bold",
   },
   header: {
-    backgroundColor: "#000000", 
-    paddingHorizontal: 20,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
   },
-  textheader: {
+  title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "white",
-    textTransform: "uppercase",
+    textAlign: "center",
+    flex: 1,
+  },
+  userItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    elevation: 2,
+  },
+ 
+  userInfo: {
+    marginLeft: 15,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  userEmail: {
+    fontSize: 14,
+    color: "#666",
+  },
+  separator: {
+    height: 10,
   },
 });
+
 
 export default ChatStyle;

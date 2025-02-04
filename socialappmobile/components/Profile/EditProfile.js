@@ -87,32 +87,39 @@ const EditProfile = () => {
         cover_image: coverImage,
         email,
         phone_number: phoneNumber,
-      
+        last_name,
+        first_name,
       };
-
+  
       // Call update user endpoint with PATCH method
       const response = await api.patch('/users/update/', data);
       const updatedUser = response.data;
-
+  
       // Remove prefix before updating context
       updatedUser.avatar = formatUrl(updatedUser.avatar);
       updatedUser.cover_image = formatUrl(updatedUser.cover_image);
-
-      dispatch({ type: "updateUser", payload: updatedUser }); // Update Context
+  
+      // Update Context with the new data
+      dispatch({ type: "updateUser", payload: updatedUser }); 
+  
+      // Show success message
       alert("Profile updated successfully!");
+  
+      // Logout user after profile update
+      await AsyncStorage.removeItem("token"); // Remove token
+      dispatch({ type: "logout" }); // Update context to logged-out state
+  
+      // Navigate to login screen
+      navigation.navigate("Login"); // Adjust the screen name to match your app’s login screen
+  
     } catch (error) {
       console.error("Error updating profile:", error.response?.data || error.message);
       alert("Update failed. Please try again.");
     }
   };
+  
 
-  // Logout
-  const logout = async () => {
-    await AsyncStorage.removeItem("token");
-    dispatch({ type: "logout" });
-    navigation.navigate("index");
-  };
-
+  
   return (
     <ScrollView style={ProfileStyles.container}>
       {/* Cover image */}
@@ -212,7 +219,7 @@ const EditProfile = () => {
             <Text style={ProfileStyles.inputLabel}>Thời hạn reset MK</Text>
             <TextInput
               style={ProfileStyles.input}
-              value={user.password_reset_deadline ? moment(user.password_reset_deadline).format("DD/MM/YYYY HH:mm") : "N/A"}
+              value={user.password_reset_deadline ? moment(user.password_reset_deadline).format("DD/MM/YYYY HH:mm") : "Không giới hạn"}
               editable={false}
             />
           </View>

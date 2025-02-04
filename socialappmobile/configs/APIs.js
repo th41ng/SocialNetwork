@@ -30,9 +30,10 @@ export const endpoints = {
     someOneProfile: (userId) => `/someone-profile/?user_id=${userId}`, 
     post_detail: (postId) => `/posts/${postId}/`,
     comment_detail: (commentId) => `/comments/${commentId}/`,
-  surveys: "/surveys/", // Thêm endpoint cho khảo sát
-  survey_detail: (surveyId) => `/surveys/${surveyId}/`,
-  survey_responses: `/survey-responses/`,
+    surveys: "/surveys/", // Thêm endpoint cho khảo sát
+    survey_detail: (surveyId) => `/surveys/${surveyId}/`,
+    survey_responses: `/survey-responses/`,
+    allUser: "/users/",
 };
 
 export const authApis = (token) => {

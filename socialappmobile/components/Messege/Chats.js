@@ -1,5 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { IconButton } from 'react-native-paper';
+
 import { database } from "./FirebaseConfig";
 import { ref, push, onValue } from "firebase/database";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
@@ -63,11 +65,7 @@ const Chats = ({ navigation, route }) => {
 
   return (
     <View style={ChatStyle.container}>
-      <View style={ChatStyle.header}>
-        <Text style={ChatStyle.textheader}>
-          {username}
-        </Text>
-      </View>
+      <IconButton icon="arrow-left" size={28} onPress={() => navigation.goBack()} />
 
       <FlatList
         data={messages}

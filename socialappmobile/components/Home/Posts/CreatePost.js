@@ -122,7 +122,7 @@ const CreatePost = () => {
       console.log("Dữ liệu gửi lên API:", data);
       const res = await authApis(token).post(endpoints["create_post"], data);
       if (res.status === 201) {
-        Alert.alert("Thông báo", "Đăng bài thành công!");
+        // Alert.alert("Thông báo", "Đăng bài thành công!");
         navigation.navigate("Home", { refresh: true });
         setContent("");
         setImage(null);

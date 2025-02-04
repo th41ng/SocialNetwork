@@ -118,7 +118,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { styles } from "./NotificationStyles"; // Import styles from the new styles file
 import moment from "moment";
 import Icon from 'react-native-vector-icons/MaterialIcons'; // Hoặc bất kỳ thư viện icon nào bạn muốn
-
+import he from "he"; 
 
 const initialState = {
   notifications: [],
@@ -197,8 +197,9 @@ const EventList = () => {
     );
   }
 
-  const stripHtml = (html) => {
-    return html.replace(/<[^>]*>/g, ""); // Xóa tất cả thẻ HTML
+  const decodeHtml = (html) => {
+    const strippedHtml = html.replace(/<[^>]*>/g, ""); // Remove HTML tags
+    return he.decode(strippedHtml); // Decode HTML entities
   };
   
   const renderItem = ({ item }) => (
@@ -207,12 +208,12 @@ const EventList = () => {
         <View style={styles.header}>
           <Icon name="event" size={30} color="#6200ee" style={styles.icon} />
           <Title style={styles.eventTitle}>
-            SỰ KIỆN: {stripHtml(item.eventDetails?.title || "Không có tên sự kiện")}
+            SỰ KIỆN: {decodeHtml(item.eventDetails?.title || "Không có tên sự kiện")}
           </Title>
         </View>
         <View style={styles.separator} />
-        <Paragraph style={styles.eventContent}>{stripHtml(item.content)}</Paragraph>
-        <Text style={styles.note}>Ghi chú: {stripHtml(item.eventDetails?.description || "Không có mô tả")}</Text>
+        <Paragraph style={styles.eventContent}>{decodeHtml(item.content)}</Paragraph>
+        <Text style={styles.note}>Ghi chú: {decodeHtml(item.eventDetails?.description || "Không có mô tả")}</Text>
         <Text style={styles.timeText}>
           {moment(item.eventDetails?.start_time).format("DD/MM/YYYY - HH:mm")} đến{" "}
           {moment(item.eventDetails?.end_time).format("DD/MM/YYYY - HH:mm")}

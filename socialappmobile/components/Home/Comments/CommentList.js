@@ -10,7 +10,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
-import { Avatar, Menu, Divider } from "react-native-paper";
+import { Avatar, Menu, Divider, Icon } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useWindowDimensions } from "react-native";
 import RenderHtml from "react-native-render-html";
@@ -309,15 +309,19 @@ const CommentList = ({
           <View key={comment.id} style={styles.commentContainer}>
             <View style={styles.comment}>
               <View style={styles.commentHeader}>
-                <Avatar.Image
-                  source={{
-                    uri:
-                      formatImageUrl(comment.user?.avatar) ||
-                      "https://via.placeholder.com/150",
-                  }}
-                  size={40}
-                  style={styles.commentAvatar}
-                />
+              {comment.user?.avatar ? (
+                    <Avatar.Image
+                      source={{ uri: formatImageUrl(comment.user?.avatar) }}
+                      size={40}
+                      style={styles.commentAvatar}
+                    />
+                  ) : (
+                    <Avatar.Icon 
+                      icon="account" 
+                      size={40} 
+                      style={styles.commentAvatar} 
+                    />
+                  )}
                 <View style={styles.userInfo}>
                   <Text style={styles.commentUsername}>
                     {comment.user?.username || "Anonymous"}
@@ -467,6 +471,7 @@ const styles = StyleSheet.create({
   },
   commentAvatar: {
     marginRight: 10,
+    backgroundColor: "#000000",
   },
   userInfo: {
     flex: 1,

@@ -1,3 +1,7 @@
+import {LogBox } from "react-native";
+LogBox.ignoreLogs([
+  'Warning: MemoizedTNodeRenderer: Support for defaultProps will be removed from memo components in a future major release.'
+]);
 import { registerRootComponent } from 'expo';
 
 import App from './App';

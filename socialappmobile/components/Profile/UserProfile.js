@@ -408,6 +408,7 @@ const Profile = () => {
 
   const editInfo = () => navigation.navigate("EditProfile");
   const security = () => navigation.navigate("UserSecurity");
+  const messeger = () => navigation.navigate("AllUserChat");
 
   const formatPostTime = (time) => moment(time).fromNow();
 
@@ -488,6 +489,7 @@ const Profile = () => {
         <Drawer.Section style={ProfileStyles.drawerSection}>
           <Drawer.Item label="Chỉnh sửa thông tin" onPress={editInfo} labelStyle={ProfileStyles.drawerItem} />
           <Drawer.Item label="Bảo mật" onPress={security} labelStyle={ProfileStyles.drawerItem} />
+          <Drawer.Item label="Nhắn tin" onPress={messeger} labelStyle={ProfileStyles.drawerItem} />
           {/* Thay đổi hàm onPress cho đăng xuất để hiển thị hộp thoại xác nhận */}
           <Drawer.Item label="Đăng xuất" onPress={confirmLogout} labelStyle={ProfileStyles.drawerItem} />
         </Drawer.Section>

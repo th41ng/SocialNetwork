@@ -11,7 +11,6 @@ import PostItemSkeleton from "../Posts/PostItemSkeleton";
 import { endpoints } from "../../../configs/APIs";
 import { fetchData, fetchAllComments, fetchAllReactions } from "../../../configs/APIs";
 import { debounce } from 'lodash';
-
 /**
  * Component màn hình chính (Home) của ứng dụng.
  */

@@ -18,6 +18,7 @@ import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
 import Surveys from './components/Home/Surveys/Survey';
 import TakeSurvey from './components/Home/Surveys/TakeSurvey';
 import ChatScreen from './components/Messege/Chats';
+import AllUserChatScreen from './components/Messege/AllUserChat';
 import { SafeAreaProvider } from "react-native-safe-area-context"; // Import SafeAreaProvider
 
 const Stack = createStackNavigator();
@@ -45,6 +46,7 @@ export default function App() {
               <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
               <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
               <Stack.Screen name="Chats" component={ChatScreen} options={{ headerShown: false }}/>
+              <Stack.Screen name="AllUserChat" component={AllUserChatScreen} options={{headerShown: false}}/>
               <Stack.Screen 
                 name="Surveys" 
                 component={Surveys} 
