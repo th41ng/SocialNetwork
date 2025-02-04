@@ -8,9 +8,9 @@ import { MyUserContext } from "../../configs/UserContext";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context"; 
-import { styles } from "./NotificationStyles"; // Import styles from the new styles file
+import { styles } from "./NotificationStyles"; 
 import moment from "moment";
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Hoặc bất kỳ thư viện icon nào bạn muốn
+import Icon from 'react-native-vector-icons/MaterialIcons'; 
 import he from "he"; 
 
 const initialState = {
@@ -47,14 +47,13 @@ const EventList = () => {
         console.log("Toàn bộ dữ liệu trả về từ API:", response.data);
 
         if (response.data && response.data.results) {
-          // Lấy thông tin sự kiện chi tiết cho mỗi thông báo
           const eventsWithDetails = await Promise.all(
             response.data.results.map(async (notification) => {
-              const eventId = notification.event;  // Lấy ID sự kiện từ thông báo
-              const eventResponse = await api.get(`${endpoints.events}${eventId}/`);  // Lấy thông tin sự kiện theo ID
+              const eventId = notification.event;  
+              const eventResponse = await api.get(`${endpoints.events}${eventId}/`);  
               return {
-                ...notification,  // Giữ lại thông tin của thông báo
-                eventDetails: eventResponse.data,  // Thêm thông tin sự kiện vào thông báo
+                ...notification, 
+                eventDetails: eventResponse.data,  
                 
               };
             })
@@ -91,8 +90,8 @@ const EventList = () => {
   }
 
   const decodeHtml = (html) => {
-    const strippedHtml = html.replace(/<[^>]*>/g, ""); // Remove HTML tags
-    return he.decode(strippedHtml); // Decode HTML entities
+    const strippedHtml = html.replace(/<[^>]*>/g, ""); 
+    return he.decode(strippedHtml); 
   };
   
   const renderItem = ({ item }) => (

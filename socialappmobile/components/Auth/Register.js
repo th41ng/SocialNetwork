@@ -13,13 +13,13 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [avatar, setAvatar] = useState(null);
-  const [studentId, setStudentId] = useState(""); // Mã số sinh viên
-  const [email, setEmail] = useState(""); // Email
-  const [phoneNumber, setPhoneNumber] = useState(""); // Số điện thoại
+  const [studentId, setStudentId] = useState(""); 
+  const [email, setEmail] = useState(""); 
+  const [phoneNumber, setPhoneNumber] = useState(""); 
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState(null); // Role initially is null (not selected)
-  const [roles, setRoles] = useState([]); // To store the roles fetched from the backend
-  const [menuVisible, setMenuVisible] = useState(false); // Added state to manage menu visibility
+  const [role, setRole] = useState(null); 
+  const [roles, setRoles] = useState([]); 
+  const [menuVisible, setMenuVisible] = useState(false); 
 
   const navigation = useNavigation();
 
@@ -29,7 +29,7 @@ const Register = () => {
         const response = await APIs.get(endpoints["getRoles"]);
         console.log("Fetched roles:", response.data);
         if (response.data && response.data.results) {
-          setRoles(response.data.results); // Lưu kết quả vào state
+          setRoles(response.data.results); 
         }
       } catch (error) {
         console.error("Failed to fetch roles:", error);
@@ -48,13 +48,12 @@ const Register = () => {
       return;
     }
   
-    // Nếu là giảng viên, set mật khẩu mặc định
+
     let passwordToSend = password;
     if (role.name === "Giảng viên" && !password) {
-      passwordToSend = 'ou@123';  // Set mật khẩu mặc định cho Giảng viên
+      passwordToSend = 'ou@123'; 
     }
-  
-    // Kiểm tra mật khẩu đối với các vai trò khác
+
     if (role.name !== "Giảng viên") {
       if (passwordToSend !== confirmPassword) {
         alert("Mật khẩu không khớp!");
@@ -66,7 +65,6 @@ const Register = () => {
       }
     }
   
-    // Kiểm tra email và số điện thoại
     if (!email || !email.includes("@")) {
       alert("Vui lòng nhập email hợp lệ!");
       return;
@@ -79,35 +77,35 @@ const Register = () => {
     setLoading(true);
   
     try {
-      // Prepare data for the registration API
+  
       const data = {
         first_name,
         last_name,
         username,
         email,
         phone_number: phoneNumber,
-        role: role.id, // Use the role ID from the selected role
-        password: passwordToSend, // Gửi mật khẩu đã được xử lý
+        role: role.id, 
+        password: passwordToSend, 
       };
   
-      // Add student_id if the role is "Sinh viên"
+      
       if (role.name === "Sinh viên") {
         data.student_id = studentId;
       }
   
       console.log("Data", data);
   
-      // Make the POST request to register the user
+     
       const response = await APIs.post(endpoints.register, data, {
         headers: {
           "Content-Type": "application/json",
         },
       });
   
-      console.log("Registration Success:", response.data); // Log the response on success
+      console.log("Registration Success:", response.data); 
       navigation.navigate("Login");
     } catch (error) {
-      console.error("Đăng ký lỗi:", error); // Log the error in case of failure
+      console.error("Đăng ký lỗi:", error); 
       if (error.response) {
         console.error("Error Response:", error.response.data);
         alert("Lỗi đăng ký: " + error.response.data.detail || "Có lỗi xảy ra, vui lòng thử lại!");
@@ -154,7 +152,7 @@ const Register = () => {
           style={AuthStyle.input}
           value={email}
           onChangeText={setEmail}
-          keyboardType="email-address" // Email-specific keyboard
+          keyboardType="email-address" 
           mode="outlined"
         />
 
@@ -163,7 +161,7 @@ const Register = () => {
           style={AuthStyle.input}
           value={phoneNumber}
           onChangeText={setPhoneNumber}
-          keyboardType="phone-pad" // Phone number-specific keyboard
+          keyboardType="phone-pad"
           mode="outlined"
         />
 
@@ -175,7 +173,7 @@ const Register = () => {
               value={studentId}
               onChangeText={setStudentId}
               mode="outlined"
-              keyboardType="numeric"  // Ensures only numeric input
+              keyboardType="numeric"  
             />
           </>
         )}
@@ -216,8 +214,8 @@ const Register = () => {
       key={roleOption.id}
       title={roleOption.name}
       onPress={() => {
-        setRole(roleOption); // Cập nhật role ngay khi nhấn chọn
-        setMenuVisible(false); // Ẩn menu ngay lập tức
+        setRole(roleOption); 
+        setMenuVisible(false); 
         console.log("Selected Role:",roleOption);
       }}
     />

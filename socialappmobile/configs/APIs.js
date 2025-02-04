@@ -2,17 +2,9 @@
 import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = "https://danhdanghoang.pythonanywhere.com"; // Thay đổi nếu cần
+const BASE_URL = "https://danhdanghoang.pythonanywhere.com"; 
 
 export const endpoints = {
-    // login: "/o/token/",
-    // register: "/users/register/",
-    // profile: "/profile/",
-    // getRoles: "/roles/",
-    // posts: "/posts/",
-    // create_post: "/posts/",
-    // reactions: "/reactions/",
-    // comments: "/comments/", 
     notification: "/notifications/",
     events: "/events/",
     currentUserPosts : "/posts/my-posts/",
@@ -25,12 +17,10 @@ export const endpoints = {
     create_post: "/posts/",
     reactions: "/reactions/",
     comments: "/comments/",
-    // userProfileDetail: (userId) => `/profile/?user_id=${userId}`, 
-    // userPostDetail: (userId) => `/posts/?user_id=${userId}/user-posts/`, 
     someOneProfile: (userId) => `/someone-profile/?user_id=${userId}`, 
     post_detail: (postId) => `/posts/${postId}/`,
     comment_detail: (commentId) => `/comments/${commentId}/`,
-    surveys: "/surveys/", // Thêm endpoint cho khảo sát
+    surveys: "/surveys/", 
     survey_detail: (surveyId) => `/surveys/${surveyId}/`,
     survey_responses: `/survey-responses/`,
     allUser: "/users/",
@@ -47,7 +37,6 @@ export const authApis = (token) => {
   });
 };
 
-// Default axios instance without authorization (for public endpoints)
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {

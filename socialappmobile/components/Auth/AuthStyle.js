@@ -16,7 +16,7 @@ const AuthStyle = StyleSheet.create({
   },
   buttonContainer: {
     marginTop:10,
-    alignItems: "center", // Căn giữa theo chiều ngang
+    alignItems: "center", 
   },
 
 });

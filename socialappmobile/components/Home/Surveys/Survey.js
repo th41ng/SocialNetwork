@@ -1,4 +1,3 @@
-// screens/Surveys.js
 import React, { useCallback, useState, useEffect } from "react";
 import {
   Text,
@@ -11,24 +10,12 @@ import Navbar from "../Navbar";
 import SurveyItem from "./SurveyItem";
 import { fetchAllSurveys } from "../../../configs/APIs";
 import HomeStyles from "../HomeStyles";
-
-/**
- * Component hiển thị danh sách các khảo sát (surveys).
- */
 const Surveys = () => {
-  // State lưu trữ danh sách surveys
   const [surveys, setSurveys] = useState([]);
-
-  // State cho trạng thái loading
   const [loading, setLoading] = useState(true);
-
   const navigation = useNavigation();
-  const route = useRoute(); // Thêm dòng này
+  const route = useRoute(); 
 
-
-  /**
-   * Hàm tải danh sách surveys.
-   */
   const loadSurveys = useCallback(async () => {
     try {
       const allSurveys = await fetchAllSurveys();
@@ -40,9 +27,6 @@ const Surveys = () => {
     }
   }, []);
 
-  /**
-   * Hook useFocusEffect được gọi mỗi khi màn hình Surveys được focus.
-   */
   useFocusEffect(
     useCallback(() => {
       loadSurveys();
@@ -54,7 +38,6 @@ const Surveys = () => {
     }, [loadSurveys, route.params])
   );
 
-  // Hiển thị màn hình loading khi đang tải dữ liệu
   if (loading) {
     return (
       <View style={HomeStyles.loaderContainer}>
@@ -66,20 +49,15 @@ const Surveys = () => {
 
   return (
     <View style={HomeStyles.container}>
-      {/* Header */}
       <View style={HomeStyles.header}>
         <Text style={HomeStyles.appName}>SocialApp</Text>
       </View>
-
-      {/* Danh sách surveys */}
       <FlatList
         data={surveys}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SurveyItem survey={item} />}
         showsVerticalScrollIndicator={false}
       />
-
-      {/* Navbar */}
       <Navbar navigation={navigation} />
     </View>
   );

@@ -8,20 +8,18 @@ import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import ChatStyle from "./ChatStyle";
 
 const Chats = ({ navigation, route }) => {
-  const { userId, username } = route.params; // Lấy userId của người nhận
-  const currentUser = useContext(MyUserContext); // Lấy người dùng hiện tại từ Context
+  const { userId, username } = route.params; 
+  const currentUser = useContext(MyUserContext); 
 
-  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
-  const [message, setMessage] = useState(""); // Tin nhắn nhập vào
+  const [messages, setMessages] = useState([]); 
+  const [message, setMessage] = useState(""); 
 
-  // Tạo chatId dựa trên userId và currentUser.id
   const chatId =
     currentUser.id < userId
       ? `${currentUser.id}_${userId}`
       : `${userId}_${currentUser.id}`;
 
   useEffect(() => {
-    // Đặt log chỉ khi chatId thay đổi (chỉ chạy một lần khi component mount)
     console.log("userId:", userId);
     console.log("currentUserId:", currentUser.id);
     console.log("chatId:", chatId);
@@ -33,10 +31,9 @@ const Chats = ({ navigation, route }) => {
       setMessages(loadedMessages);
     });
 
-    return () => unsubscribe(); // Hủy đăng ký khi rời màn hình
-  }, [chatId]); // Chỉ chạy lại khi chatId thay đổi
+    return () => unsubscribe(); 
+  }, [chatId]); 
 
-  // Hàm gửi tin nhắn
   const sendMessage = async () => {
     if (message.trim() === "") return;
 
@@ -44,13 +41,13 @@ const Chats = ({ navigation, route }) => {
     await push(messagesRef, {
       text: message,
       timestamp: Date.now(),
-      from: currentUser.id, // ID người gửi
+      from: currentUser.id, 
     });
 
-    setMessage(""); // Reset tin nhắn sau khi gửi
+    setMessage(""); 
   };
 
-  // Hiển thị tin nhắn
+
   const renderMessage = ({ item }) => (
     <View
       style={[

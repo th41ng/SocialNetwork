@@ -131,8 +131,7 @@ const TakeSurvey = () => {
         {
           text: "OK",
           onPress: () => {
-            // Navigate đến Surveys
-            navigation.navigate("Surveys", { refresh: true }); // Truyền thêm params để refresh
+            navigation.navigate("Surveys", { refresh: true });
           },
         },
       ]);
@@ -144,7 +143,6 @@ const TakeSurvey = () => {
     }
   };
 
-  // Hiển thị màn hình loading khi đang tải
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -158,19 +156,14 @@ const TakeSurvey = () => {
 
   return (
     <ScrollView style={styles.container}>
-      {survey && ( // Thêm điều kiện kiểm tra survey khác null
+      {survey && ( 
         <>
-          {/* Tiêu đề khảo sát */}
           <Text style={styles.title}>{survey.title}</Text>
-  
-          {/* Câu hỏi hiện tại và các phần khác sử dụng currentQuestion */}
           {survey.questions && survey.questions.length > 0 && currentQuestionIndex >=0 && currentQuestionIndex < survey.questions.length && (
             <>
               <Text style={styles.questionText}>
                 {survey.questions[currentQuestionIndex].text}
               </Text>
-  
-              {/* Hiển thị input cho câu hỏi text */}
               {survey.questions[currentQuestionIndex].question_type === "text" && (
                 <TextInput
                   style={styles.input}
@@ -181,8 +174,6 @@ const TakeSurvey = () => {
                   placeholder="Type your answer here..."
                 />
               )}
-  
-              {/* Hiển thị options cho câu hỏi multiple choice */}
               {survey.questions[currentQuestionIndex].question_type ===
                 "multiple_choice" && (
                 <View>
@@ -209,8 +200,6 @@ const TakeSurvey = () => {
               )}
             </>
           )}
-  
-          {/* Nút "Next" hoặc "Submit" */}
           <TouchableOpacity
             style={[
               styles.button,
@@ -233,7 +222,6 @@ const TakeSurvey = () => {
   );
 };
 
-// Styles cho component
 const styles = StyleSheet.create({
   container: {
     flex: 1,

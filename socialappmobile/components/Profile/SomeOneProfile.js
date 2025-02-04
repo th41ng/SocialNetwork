@@ -5,7 +5,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
 import APIs, { endpoints } from "../../configs/APIs";
-import moment from "moment";  // Thêm moment để xử lý thời gian
+import moment from "moment";  
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -19,7 +19,6 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Hàm loại bỏ tiền tố "image/upload/" nếu có
   const formatImageUrl = (url) => {
     const prefix = "image/upload/";
     return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
@@ -29,16 +28,13 @@ const Profile = () => {
     const fetchProfileData = async () => {
       if (!userId) {
         Alert.alert("Lỗi", "Không thể tải thông tin người dùng. Vui lòng thử lại.");
-        navigation.goBack(); // Quay lại nếu không có userId
+        navigation.goBack(); 
         return;
       }
       setLoading(true);
       try {
-        // Lấy thông tin người dùng dựa trên userId
         const userResponse = await APIs.get(endpoints.someOneProfile(userId));
         const user = userResponse.data;
-
-        // Lấy avatar và ảnh bìa từ dữ liệu
         setAvatar(formatImageUrl(user.user.avatar) || null);
         setCoverImage(formatImageUrl(user.user.cover_image) || null);
 
@@ -75,13 +71,11 @@ const Profile = () => {
           )}
       </View>
       <View style={ProfileStyles.profileInfo}>
-        {/* Thông tin người dùng */}
         <Text style={ProfileStyles.username}>{userData?.user?.username}</Text>
         <Text style={ProfileStyles.infoText}>Email: {userData?.user?.email}</Text>
         <Text style={ProfileStyles.infoText}>Số điện thoại: {userData?.user?.phone_number}</Text>
         <Text style={ProfileStyles.infoText}>Vai trò: {userData?.user?.role}</Text>
       </View>
-      {/* Nút nhắn tin */}
       <View style={ProfileStyles.messageButtonContainer}>
         <TouchableOpacity
           style={ProfileStyles.messageButton}
@@ -94,7 +88,6 @@ const Profile = () => {
           <Text style={ProfileStyles.messageButtonText}>Nhắn tin</Text>
         </TouchableOpacity>
       </View>
-      {/* Tiêu đề danh sách bài viết */}
       <View style={ProfileStyles.postHeaderContainer}>
         <Text style={ProfileStyles.postHeaderText}>Bài viết</Text>
       </View>
@@ -102,7 +95,7 @@ const Profile = () => {
   );
 
   const formatPostTime = (time) => {
-    return moment(time).fromNow();  // Sử dụng moment để tính thời gian đã trôi qua
+    return moment(time).fromNow();  
   };
   const renderPost = ({ item: post }) => (
     <Card style={ProfileStyles.postCard}>
@@ -139,7 +132,6 @@ const Profile = () => {
 
   return (
     <View style={ProfileStyles.container}>
-      {/* Sử dụng FlatList luôn, ngay cả khi không có bài viết */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id.toString()}

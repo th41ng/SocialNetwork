@@ -1,4 +1,3 @@
-// components/CommentList.js
 import React, { useState, useCallback, useContext, useRef } from "react";
 import {
   View,
@@ -41,10 +40,8 @@ const CommentList = ({
   const [editingComment, setEditingComment] = useState(null);
   const [editedCommentContent, setEditedCommentContent] = useState("");
 
-  // Sử dụng useRef để lưu trữ animation state cho từng comment
   const animationRefs = useRef({});
 
-  // Tạo animation state cho comment mới khi comment được thêm vào
   const ensureAnimationState = useCallback((commentId) => {
     if (!animationRefs.current[commentId]) {
       animationRefs.current[commentId] = {
@@ -81,8 +78,6 @@ const CommentList = ({
       const comment = await authApis(token).get(
         endpoints.comment_detail(commentId)
       );
-
-      // Cho phép người đăng bài xóa bất kỳ bình luận nào trong bài viết của họ
       if (
         comment.data.user.id !== currentUser.id &&
         postUser?.id !== currentUser.id
@@ -96,8 +91,6 @@ const CommentList = ({
       );
 
       if (res.status === 204) {
-        // Alert.alert("Thông báo", "Xóa bình luận thành công!");
-
         dispatch({
           type: "DELETE_COMMENT",
           payload: commentId,
@@ -150,7 +143,7 @@ const CommentList = ({
     }
   };
 
-  // Hàm animation
+
   const runAnimation = (animationValue) => {
     Animated.sequence([
       Animated.timing(animationValue, {
@@ -168,10 +161,10 @@ const CommentList = ({
     ]).start();
   };
 
-    // Cập nhật handleCommentReaction để sử dụng animation state từ animationRefs
+
     const handleCommentReaction = useCallback(
         async (commentId, reactionType) => {
-          ensureAnimationState(commentId); // Đảm bảo animation state tồn tại
+          ensureAnimationState(commentId);
           const { likeAnimation, hahaAnimation, loveAnimation } = animationRefs.current[commentId];
     
           try {
@@ -254,7 +247,7 @@ const CommentList = ({
               }
             }
     
-            // Chạy animation
+           
             if (reactionType === "like") {
               runAnimation(likeAnimation);
             } else if (reactionType === "haha") {
@@ -327,7 +320,7 @@ const CommentList = ({
                     {comment.user?.username || "Anonymous"}
                   </Text>
                 </View>
-                {/* Hiển thị nút "more-vert" cho chủ comment và chủ bài viết */}
+         
                 {(comment.user?.id === user?.id ||
                   postUser?.id === user?.id) && (
                   <TouchableOpacity

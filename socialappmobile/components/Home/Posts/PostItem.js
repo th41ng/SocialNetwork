@@ -1,6 +1,5 @@
-// components/PostItem.js
 import React, { useState, useCallback, useMemo, useContext, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, Alert, Animated, Easing } from "react-native"; // Import Animated and Easing
+import { View, Text, TouchableOpacity, Image, Alert, Animated, Easing } from "react-native"; 
 import { Avatar, Menu, Divider } from "react-native-paper";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useWindowDimensions } from "react-native";
@@ -13,32 +12,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../../configs/UserContext";
 import moment from "moment";
 
-/**
-* Component hiển thị một bài viết (post) trong danh sách bài viết.
-*/
 const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
     const navigation = useNavigation();
-
-    // Lấy thông tin user hiện tại từ context
     const user = useContext(MyUserContext);
-
-    // State cho menu sửa/xóa bài viết
     const [isMenuVisible, setIsMenuVisible] = useState(false);
-    const [anchor, setAnchor] = useState({ x: 0, y: 0 }); // Tọa độ để hiển thị menu
-    // State cho việc khóa/mở khóa bình luận
+    const [anchor, setAnchor] = useState({ x: 0, y: 0 });
     const [isCommentLocked, setIsCommentLocked] = useState(post.is_comment_locked || false);
-
-    // State cho animation
     const [likeAnimation] = useState(new Animated.Value(0));
     const [hahaAnimation] = useState(new Animated.Value(0));
     const [loveAnimation] = useState(new Animated.Value(0));
-
-    // Lấy kích thước màn hình
     const { width } = useWindowDimensions();
-
-    /**
-    * Ẩn/hiện menu sửa/xóa bài viết.
-    */
     const toggleMenu = useCallback((event) => {
         if (event) {
             const { nativeEvent } = event;
@@ -47,29 +30,6 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
         setIsMenuVisible((prev) => !prev);
     }, []);
 
-    /**
-     * Hàm thực hiện animation
-     */
-    const runAnimation = (animationValue) => {
-        Animated.sequence([
-            Animated.timing(animationValue, {
-                toValue: 1,
-                duration: 200,
-                easing: Easing.ease,
-                useNativeDriver: true,
-            }),
-            Animated.timing(animationValue, {
-                toValue: 0,
-                duration: 500,
-                easing: Easing.ease,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    };
-
-    /**
-    * Xử lý tương tác (reaction) với bài viết: like, haha, love.
-    */
     const handlePostReaction = useCallback(
         async (reactionType) => {
             try {
@@ -81,21 +41,15 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
 
                 const authenticatedApis = authApis(token);
                 const userId = JSON.parse(await AsyncStorage.getItem("user")).id;
-
-                // Kiểm tra reaction tồn tại của user với bài viết
                 const existingReaction = state.data.reactions.find(
                     (r) =>
                         r.target_type === "post" &&
                         r.target_id === post.id &&
                         r.user === userId
                 );
-
                 let response;
-
                 if (existingReaction) {
-                    // Nếu đã có reaction
                     if (existingReaction.reaction_type === reactionType) {
-                        // Nếu reaction type trùng với type hiện tại => xóa reaction
                         response = await authenticatedApis.delete(
                             `${endpoints.reactions}${existingReaction.id}/`
                         );
@@ -107,7 +61,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                             });
                         }
                     } else {
-                        // Nếu reaction type khác => cập nhật reaction type
+                        
                         const payload = { reaction_type: reactionType };
                         response = await authenticatedApis.patch(
                             `${endpoints.reactions}${existingReaction.id}/`,
@@ -125,7 +79,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                         }
                     }
                 } else {
-                    // Nếu chưa có reaction => tạo mới
+                 
                     const payload = {
                         target_type: "post",
                         target_id: post.id,
@@ -144,7 +98,6 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                     }
                 }
 
-                // Cập nhật reaction summary
                 const summaryResponse = await authenticatedApis.get(
                     `${endpoints.post_detail(post.id)}reactions-summary/`
                 );
@@ -159,8 +112,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                         },
                     });
                 }
-                
-          // Chạy animation tương ứng với reaction type
+            
       if (reactionType === "like") {
         Animated.sequence([
           Animated.timing(likeAnimation, {
@@ -213,15 +165,10 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                     "Error in handleReaction:",
                     error.response || error.message
                 );
-                // Alert.alert("Lỗi", "Đã có lỗi xảy ra khi tương tác với bài viết.");
             }
         },
         [state.data.reactions, dispatch, post.id, likeAnimation, hahaAnimation, loveAnimation]
     );
-
-    /**
-    * Xử lý xóa bài viết.
-    */
     const handleDeletePost = useCallback(async () => {
         try {
             const token = await AsyncStorage.getItem("token");
@@ -247,24 +194,14 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
             Alert.alert("Lỗi", "Đã có lỗi xảy ra khi xóa bài viết.");
         }
     }, [post.id, dispatch]);
-
-    /**
-    * Lấy danh sách comment cho bài viết hiện tại.
-    */
     const getCommentsForPost = useMemo(() => {
         return state.data.comments.filter((comment) => comment.post === post.id);
     }, [state.data.comments, post.id]);
 
-    /**
-    * Ẩn/hiện danh sách comment.
-    */
     const toggleComments = useCallback(() => {
         dispatch({ type: "TOGGLE_COMMENTS", payload: post.id });
     }, [dispatch, post.id]);
 
-    /**
-    * Xử lý khóa/mở khóa bình luận.
-    */
     const handleToggleCommentLock = async () => {
         try {
             const token = await AsyncStorage.getItem("token");
@@ -291,16 +228,7 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
         }
     };
 
-
-    // Chuyển đổi thời gian tạo bài viết từ timestamp sang dạng "X phút trước"
-    const timeAgo = moment(post.created_date).fromNow(); // Sử dụng moment.js để hiển thị thời gian
-
-    // // Sử dụng useEffect để log ra state.data.posts mỗi khi nó thay đổi
-    // useEffect(() => {
-    // console.log("state.data.posts updated:", state.data.posts);
-    // }, [state.data.posts]);
-
-    // Scale animation cho từng reaction
+    const timeAgo = moment(post.created_date).fromNow(); 
     const likeScale = likeAnimation.interpolate({
         inputRange: [0, 0.5, 1],
         outputRange: [1, 1.2, 1],
@@ -372,7 +300,6 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                 />
             )}
 
-            {/* Thanh tương tác: like, haha, love, comment, share */}
             <View style={HomeStyles.interactionRow}>
                 <Animated.View style={{ transform: [{ scale: likeScale }] }}>
                     <TouchableOpacity onPress={() => handlePostReaction("like")}>
@@ -406,27 +333,20 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                         {getCommentsForPost.length}
                     </Text>
                 </TouchableOpacity>
-                {/* <TouchableOpacity style={HomeStyles.interactionButton}>
-<Ionicons name="share-outline" size={20} color="#333" />
-</TouchableOpacity> */}
             </View>
-
-            {/* Danh sách comment */}
             <CommentList
                 postId={post.id}
                 comments={getCommentsForPost}
-                isVisible={state.visibleComments[post.id] && !isCommentLocked} // Ẩn comment list khi bị khóa
+                isVisible={state.visibleComments[post.id] && !isCommentLocked} 
                 dispatch={dispatch}
                 state={state}
                 handlePostReaction={handlePostReaction}
                 updatedCommentId={updatedCommentId}
-                isCommentLocked={isCommentLocked} // Truyền trạng thái khóa comment xuống CommentList
+                isCommentLocked={isCommentLocked} 
                 postUser={post.user}
             />
 
-            {/* Menu sửa/xóa bài viết */}
             <Menu visible={isMenuVisible} onDismiss={toggleMenu} anchor={anchor}>
-                {/* Chỉ hiển thị cho chủ bài viết */}
                 {post.user?.id === user?.id && (
                     <>
                         <Menu.Item

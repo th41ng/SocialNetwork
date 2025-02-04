@@ -1,18 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
-import axios from "axios"; // Import axios
-import ProfileStyles from "./ProfileStyles"; // Reuse the existing styles
+import axios from "axios";
+import ProfileStyles from "./ProfileStyles"; 
 import { useNavigation } from "@react-navigation/native";
 
 const UserSecurity = () => {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false); // State loading để theo dõi quá trình gửi yêu cầu
+  const [loading, setLoading] = useState(false); 
   const navigation = useNavigation();
 
-  // Function to handle password change
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
       Alert.alert("Lỗi", "Vui lòng điền đầy đủ thông tin.");
@@ -30,10 +29,9 @@ const UserSecurity = () => {
       return;
     }
 
-    setLoading(true); // Bắt đầu loading khi gửi yêu cầu
+    setLoading(true); 
 
     try {
-      // Thực hiện gọi API để thay đổi mật khẩu
       const response = await axios.post(
         "https://danhdanghoang.pythonanywhere.com/users/change-password/",
         {
@@ -43,28 +41,25 @@ const UserSecurity = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Thêm token vào header
-            "Content-Type": "application/json", // Đảm bảo content type đúng
+            Authorization: `Bearer ${token}`, 
+            "Content-Type": "application/json",
           },
         }
       );
-      
-      // Xử lý thành công
       Alert.alert("Thành công", response.data.message || "Mật khẩu đã được thay đổi.");
       navigation.goBack();
     } catch (error) {
       const errorMessage = error.response?.data?.detail || "Sai mật khẩu hiện tại.";
       Alert.alert("Lỗi", errorMessage);
     } finally {
-      setLoading(false); // Dừng loading khi nhận được phản hồi từ server
+      setLoading(false);
     }
   };
 
   return (
     <View style={[ProfileStyles.containerSC]}>
       <Text style={ProfileStyles.titleSC}>Bảo mật tài khoản</Text>
-      
-      {/* Old Password Input */}
+    
       <View style={ProfileStyles.formContainerSC}>
         <Text style={ProfileStyles.inputLabeSC}>Mật khẩu hiện tại</Text>
         <TextInput
@@ -75,7 +70,6 @@ const UserSecurity = () => {
           onChangeText={setOldPassword}
         />
         
-        {/* New Password Input */}
         <Text style={ProfileStyles.inputLabeSC}>Mật khẩu mới</Text>
         <TextInput
           style={ProfileStyles.inputSC}
@@ -85,7 +79,6 @@ const UserSecurity = () => {
           onChangeText={setNewPassword}
         />
         
-        {/* Confirm Password Input */}
         <Text style={ProfileStyles.inputLabeSC}>Xác nhận mật khẩu mới</Text>
         <TextInput
           style={ProfileStyles.inputSC}
@@ -96,16 +89,15 @@ const UserSecurity = () => {
         />
       </View>
       
-      {/* Buttons */}
       <TouchableOpacity
         style={ProfileStyles.buttonSC}
         onPress={handleChangePassword}
-        disabled={loading} // Disable nút khi đang loading
+        disabled={loading} 
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#ffffff" /> // Hiển thị ActivityIndicator khi loading
+          <ActivityIndicator size="small" color="#ffffff" /> 
         ) : (
-          <Text style={ProfileStyles.buttonText}>Xác nhận</Text> // Hiển thị text khi không loading
+          <Text style={ProfileStyles.buttonText}>Xác nhận</Text> 
         )}
       </TouchableOpacity>
       

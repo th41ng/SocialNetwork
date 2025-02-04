@@ -5,26 +5,24 @@ import { Image, ScrollView, Text, TextInput, TouchableOpacity, View, ImageBackgr
 import { Button,Avatar } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
-import ProfileStyles from "./ProfileStyles"; // Import styles from ProfileStyles
-import APIs, { authApis, endpoints } from "../../configs/APIs"; // Import APIs
+import ProfileStyles from "./ProfileStyles"; 
+import APIs, { authApis, endpoints } from "../../configs/APIs"; 
 import axios from "axios";
 import * as FileSystem from "expo-file-system";
 import moment from "moment";
 
 
 const EditProfile = () => {
-  const user = useContext(MyUserContext); // Get user info from Context
+  const user = useContext(MyUserContext); 
   console.log("user edit:", user);
-  const dispatch = useContext(MyDispatchContext); // Get Dispatch from Context
+  const dispatch = useContext(MyDispatchContext); 
   const navigation = useNavigation();
 
-  // Helper function to remove unwanted prefix
   const formatUrl = (url) => {
     const prefix = "image/upload/";
     return url?.includes(prefix) ? url.replace(prefix, "") : url;
   };
 
-  // State for editing information
   const [avatar, setAvatar] = useState(formatUrl(user.avatar || null));
   const [coverImage, setCoverImage] = useState(formatUrl(user.cover_image || null));
   const [email, setEmail] = useState(user.email || "");
@@ -32,7 +30,6 @@ const EditProfile = () => {
   const [last_name, setLastName] = useState(user.last_name ||"");
   const [first_name, setFirstName] = useState(user.first_name ||"");
 
-  // Upload image to Cloudinary
   const uploadImage = async (image) => {
     if (!image) return null;
 
@@ -59,7 +56,6 @@ const EditProfile = () => {
     }
   };
 
-  // Change avatar
   const changeAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync();
     if (!result.canceled) {
@@ -68,7 +64,6 @@ const EditProfile = () => {
     }
   };
 
-  // Change cover image
   const changeCoverImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync();
     if (!result.canceled) {
@@ -77,11 +72,10 @@ const EditProfile = () => {
     }
   };
 
-  // Save changes
   const saveChanges = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const api = authApis(token); // axios instance with token
+      const api = authApis(token); 
       const data = {
         avatar,
         cover_image: coverImage,
@@ -91,26 +85,15 @@ const EditProfile = () => {
         first_name,
       };
   
-      // Call update user endpoint with PATCH method
       const response = await api.patch('/users/update/', data);
       const updatedUser = response.data;
-  
-      // Remove prefix before updating context
       updatedUser.avatar = formatUrl(updatedUser.avatar);
       updatedUser.cover_image = formatUrl(updatedUser.cover_image);
-  
-      // Update Context with the new data
       dispatch({ type: "updateUser", payload: updatedUser }); 
-  
-      // Show success message
       alert("Profile updated successfully!");
-  
-      // Logout user after profile update
-      await AsyncStorage.removeItem("token"); // Remove token
-      dispatch({ type: "logout" }); // Update context to logged-out state
-  
-      // Navigate to login screen
-      navigation.navigate("Login"); // Adjust the screen name to match your app’s login screen
+      await AsyncStorage.removeItem("token"); 
+      dispatch({ type: "logout" }); 
+      navigation.navigate("Login"); 
   
     } catch (error) {
       console.error("Error updating profile:", error.response?.data || error.message);
@@ -122,7 +105,6 @@ const EditProfile = () => {
   
   return (
     <ScrollView style={ProfileStyles.container}>
-      {/* Cover image */}
       <View style={ProfileStyles.coverImageContainer}>
         {coverImage ? (
           <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
@@ -135,7 +117,6 @@ const EditProfile = () => {
           <Text style={ProfileStyles.changeCoverText}>Change Cover Photo</Text>
         </TouchableOpacity>
       </View>
-      {/* Avatar and user info */}
       <View style={ProfileStyles.profileInfo}>
             <View style={ProfileStyles.avatarContainer}>
           {avatar ? (
@@ -149,8 +130,6 @@ const EditProfile = () => {
         </View>
 
         <Text style={ProfileStyles.username}>{user.username || "User"}</Text>
-
-        {/* Form inputs */}
         <View style={ProfileStyles.formContainer}>
 
         <View style={ProfileStyles.inputGroup}>
@@ -210,7 +189,6 @@ const EditProfile = () => {
           </>
         )}
         </View>
-        {/* Save changes button */}
         <Button mode="contained" onPress={saveChanges} style={ProfileStyles.saveButton}>
           Save Changes
         </Button>

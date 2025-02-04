@@ -3,7 +3,7 @@ import { View, TextInput, Button, StyleSheet, Alert, StatusBar } from "react-nat
 import { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../../configs/UserContext"; 
-import { SafeAreaView } from 'react-native-safe-area-context'; // Import SafeAreaView
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AddComment = ({ postId, dispatch }) => {
   const [content, setContent] = useState("");
@@ -37,10 +37,10 @@ const AddComment = ({ postId, dispatch }) => {
       const res = await authApis(token).post(endpoints["comments"], data);
 
       if (res.status === 201) {
-        // Alert.alert("Thông báo", "Bình luận thành công!");
+       
         setContent("");
 
-        // Dispatch action để cập nhật danh sách comments
+       
         dispatch({
           type: "ADD_COMMENT",
           payload: res.data, 
@@ -81,7 +81,7 @@ const AddComment = ({ postId, dispatch }) => {
 const styles = StyleSheet.create({
 container: {
   padding: 10,
-  flex: 1, // Thêm flex: 1
+  flex: 1, 
 },
 inputContainer: {
     flexDirection: 'row',

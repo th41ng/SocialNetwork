@@ -102,18 +102,18 @@ const ProfileStyles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 10, // Space between avatar and text
+    marginRight: 10, 
   },
   postTextContainer: {
-    flexDirection: "column", // Stack name and time vertically
-    justifyContent: "flex-start", // Align name and time to the top
+    flexDirection: "column", 
+    justifyContent: "flex-start",
   },
   postAuthorName: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#555",
     marginLeft:10,
-    marginBottom: 4, // Space between name and time
+    marginBottom: 4, 
   },
   postTime: {
     fontSize: 12,

@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useCallback } from "react"; 
-import { Text, View, Image, FlatList, ActivityIndicator, ImageBackground, Alert } from "react-native"; // Thêm Alert
+import { Text, View, Image, FlatList, ActivityIndicator, ImageBackground, Alert } from "react-native"; 
 import { Avatar, IconButton, Drawer, Card } from "react-native-paper";
 import moment from "moment";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -72,7 +72,6 @@ const Profile = () => {
     }
   };
 
-  // Hàm hiện hộp thoại xác nhận đăng xuất
   const confirmLogout = () => {
     Alert.alert(
       "Đăng xuất",
@@ -171,7 +170,6 @@ const Profile = () => {
           <Drawer.Item label="Chỉnh sửa thông tin" onPress={editInfo} labelStyle={ProfileStyles.drawerItem} />
           <Drawer.Item label="Bảo mật" onPress={security} labelStyle={ProfileStyles.drawerItem} />
           <Drawer.Item label="Nhắn tin" onPress={messeger} labelStyle={ProfileStyles.drawerItem} />
-          {/* Thay đổi hàm onPress cho đăng xuất để hiển thị hộp thoại xác nhận */}
           <Drawer.Item label="Đăng xuất" onPress={confirmLogout} labelStyle={ProfileStyles.drawerItem} />
         </Drawer.Section>
       )}

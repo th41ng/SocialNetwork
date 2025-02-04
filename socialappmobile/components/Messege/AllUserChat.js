@@ -11,14 +11,12 @@ const formatImageUrl = (url) => {
 };
 
 const AllUserChat = () => {
-  const [users, setUsers] = useState([]); // Danh sách user
-  const [loading, setLoading] = useState(true); // Loading lần đầu
-  const [loadingMore, setLoadingMore] = useState(false); // Loading khi tải thêm
-  const [nextPage, setNextPage] = useState(endpoints["allUser"]); // Trang hiện tại
+  const [users, setUsers] = useState([]); 
+  const [loading, setLoading] = useState(true); 
+  const [loadingMore, setLoadingMore] = useState(false); 
+  const [nextPage, setNextPage] = useState(endpoints["allUser"]); 
 
   const navigation = useNavigation();
-
-  // Hàm tải user (dùng để gọi cả lần đầu tiên và khi load thêm)
   const fetchUsers = async (loadMore = false) => {
     if (!nextPage || (loadMore && loadingMore)) return;
 
@@ -27,8 +25,8 @@ const AllUserChat = () => {
       else setLoadingMore(true);
 
       let response = await APIs.get(nextPage);
-      setUsers((prevUsers) => [...prevUsers, ...response.data.results]); // Gộp dữ liệu
-      setNextPage(response.data.next); // Cập nhật link trang tiếp theo
+      setUsers((prevUsers) => [...prevUsers, ...response.data.results]); 
+      setNextPage(response.data.next); 
     } catch (error) {
       console.error("Lỗi khi lấy danh sách người dùng:", error);
     } finally {
@@ -38,15 +36,13 @@ const AllUserChat = () => {
   };
 
   useEffect(() => {
-    fetchUsers(); // Gọi API lần đầu
+    fetchUsers(); 
   }, []);
 
-  // Khi kéo xuống cuối danh sách, load trang tiếp theo
   const loadMoreUsers = () => {
     if (nextPage) fetchUsers(true);
   };
 
-  // Render từng user trong danh sách
   const renderItem = ({ item }) => (
     <TouchableOpacity style={ChatStyle.userItem} onPress={() => navigation.navigate("Chats", { userId: item.id })}>
       {item.avatar ? (
@@ -69,7 +65,6 @@ const AllUserChat = () => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Hiển thị Loading lần đầu */}
       {loading ? (
         <ActivityIndicator size="large" color="#6200ea" />
       ) : (
@@ -78,9 +73,9 @@ const AllUserChat = () => {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={ChatStyle.separator} />}
-          onEndReached={loadMoreUsers} // Khi cuộn đến cuối, tải thêm user
-          onEndReachedThreshold={0.5} // Ngưỡng 50% cuối danh sách mới tải thêm
-          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#6200ea" /> : null} // Hiển thị loading khi đang tải thêm
+          onEndReached={loadMoreUsers} 
+          onEndReachedThreshold={0.5} 
+          ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#6200ea" /> : null} 
         />
       )}
     </View>

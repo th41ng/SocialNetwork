@@ -14,28 +14,17 @@ import { MyDispatchContext } from "../../configs/UserContext";
 import AuthStyle from "./AuthStyle";
 import { useNavigation } from "@react-navigation/native";
 import qs from "qs";
-const originalConsoleError = console.error;
 
-// Override console.error to filter out the specific warning
-console.error = (...args) => {
-  // Check if the warning includes the message about defaultProps
-  if (args[0] && args[0].includes('defaultProps will be removed from function components')) {
-    // Skip this warning and don't log it
-    return;
-  }
-  // Call the original console.error for all other errors
-  originalConsoleError(...args);
-};
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);  // Thêm trạng thái cho mật khẩu
+  const [showPassword, setShowPassword] = useState(false);  
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);  // Đảo ngược trạng thái showPassword
+    setShowPassword(!showPassword); 
   };
 
     useEffect(() => {
@@ -166,12 +155,12 @@ const Login = () => {
           value={password}
           onChangeText={setPassword}
           style={AuthStyle.input}
-          secureTextEntry={!showPassword}  // Nếu showPassword là true thì sẽ không ẩn mật khẩu
+          secureTextEntry={!showPassword}  
           mode="outlined"
           right={
             <TextInput.Icon
-              icon={showPassword ? "eye-off" : "eye"}  // Thay đổi icon khi showPassword thay đổi
-              onPress={togglePasswordVisibility}  // Khi nhấn vào icon "eye", gọi hàm togglePasswordVisibility
+              icon={showPassword ? "eye-off" : "eye"}  
+              onPress={togglePasswordVisibility}  
             />
           }
         />

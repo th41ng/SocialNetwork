@@ -21,7 +21,7 @@ export const SET_SURVEYS = "SET_SURVEYS";
 export const ADD_SURVEY = "ADD_SURVEY";
 export const UPDATE_SURVEY = "UPDATE_SURVEY";
 export const DELETE_SURVEY = "DELETE_SURVEY";
-export const DELETE_REACTION = "DELETE_REACTION"; // Thêm action type mới
+export const DELETE_REACTION = "DELETE_REACTION"; 
 
 const reducer = (state = initialState, action) => {
   switch (action.type) {

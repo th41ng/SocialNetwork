@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Text, // Import Text từ react-native
+  Text,
 } from "react-native";
 import { TextInput, Button, Menu, Divider } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../../configs/APIs";
@@ -23,7 +23,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 const CreatePost = () => {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState([]); // Danh mục từ API
+  const [categories, setCategories] = useState([]); 
   const [visible, setVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const navigation = useNavigation();
