@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { useContext, useState, useEffect } from "react";
-import { Image, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Button } from "react-native-paper";
+import { Image, ScrollView, Text, TextInput, TouchableOpacity, View, ImageBackground} from "react-native";
+import { Button,Avatar } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import ProfileStyles from "./ProfileStyles"; // Import styles from ProfileStyles
@@ -25,8 +25,8 @@ const EditProfile = () => {
   };
 
   // State for editing information
-  const [avatar, setAvatar] = useState(formatUrl(user.avatar || "https://via.placeholder.com/150"));
-  const [coverImage, setCoverImage] = useState(formatUrl(user.cover_image || "https://via.placeholder.com/600x200"));
+  const [avatar, setAvatar] = useState(formatUrl(user.avatar || null));
+  const [coverImage, setCoverImage] = useState(formatUrl(user.cover_image || null));
   const [email, setEmail] = useState(user.email || "");
   const [phoneNumber, setPhoneNumber] = useState(user.phone_number || "");
   const [last_name, setLastName] = useState(user.last_name ||"");
@@ -117,16 +117,25 @@ const EditProfile = () => {
     <ScrollView style={ProfileStyles.container}>
       {/* Cover image */}
       <View style={ProfileStyles.coverImageContainer}>
-        <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
+        {coverImage ? (
+          <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
+        ) : (
+          <ImageBackground style={[ProfileStyles.coverImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}>
+            <Avatar.Icon size={50} icon="image" backgroundColor="#000000" />
+          </ImageBackground>
+        )}
         <TouchableOpacity style={ProfileStyles.changeCoverButton} onPress={changeCoverImage}>
           <Text style={ProfileStyles.changeCoverText}>Change Cover Photo</Text>
         </TouchableOpacity>
       </View>
-
       {/* Avatar and user info */}
       <View style={ProfileStyles.profileInfo}>
-        <View style={ProfileStyles.avatarContainer}>
-        <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
+            <View style={ProfileStyles.avatarContainer}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
+          ) : (
+            <Avatar.Icon size={80} icon="account" backgroundColor="#000000"/>
+          )}
           <TouchableOpacity onPress={changeAvatar} style={ProfileStyles.avatarWrapper}>
             <Text style={ProfileStyles.changAVtIcon}>+</Text>
           </TouchableOpacity>

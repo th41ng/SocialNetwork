@@ -61,14 +61,14 @@ const UserSecurity = () => {
   };
 
   return (
-    <View style={[ProfileStyles.container, { padding: 20 }]}>
-      <Text style={ProfileStyles.username}>Bảo mật tài khoản</Text>
+    <View style={[ProfileStyles.containerSC]}>
+      <Text style={ProfileStyles.titleSC}>Bảo mật tài khoản</Text>
       
       {/* Old Password Input */}
-      <View style={ProfileStyles.formContainer}>
-        <Text style={ProfileStyles.inputLabel}>Mật khẩu hiện tại</Text>
+      <View style={ProfileStyles.formContainerSC}>
+        <Text style={ProfileStyles.inputLabeSC}>Mật khẩu hiện tại</Text>
         <TextInput
-          style={ProfileStyles.input}
+          style={ProfileStyles.inputSC}
           placeholder="Nhập mật khẩu hiện tại"
           secureTextEntry
           value={oldPassword}
@@ -76,9 +76,9 @@ const UserSecurity = () => {
         />
         
         {/* New Password Input */}
-        <Text style={ProfileStyles.inputLabel}>Mật khẩu mới</Text>
+        <Text style={ProfileStyles.inputLabeSC}>Mật khẩu mới</Text>
         <TextInput
-          style={ProfileStyles.input}
+          style={ProfileStyles.inputSC}
           placeholder="Nhập mật khẩu mới"
           secureTextEntry
           value={newPassword}
@@ -86,9 +86,9 @@ const UserSecurity = () => {
         />
         
         {/* Confirm Password Input */}
-        <Text style={ProfileStyles.inputLabel}>Xác nhận mật khẩu mới</Text>
+        <Text style={ProfileStyles.inputLabeSC}>Xác nhận mật khẩu mới</Text>
         <TextInput
-          style={ProfileStyles.input}
+          style={ProfileStyles.inputSC}
           placeholder="Nhập lại mật khẩu mới"
           secureTextEntry
           value={confirmPassword}
@@ -98,7 +98,7 @@ const UserSecurity = () => {
       
       {/* Buttons */}
       <TouchableOpacity
-        style={ProfileStyles.button}
+        style={ProfileStyles.buttonSC}
         onPress={handleChangePassword}
         disabled={loading} // Disable nút khi đang loading
       >
@@ -110,10 +110,10 @@ const UserSecurity = () => {
       </TouchableOpacity>
       
       <TouchableOpacity
-        style={[ProfileStyles.button, { backgroundColor: "#888", marginTop: 10 }]}
+        style={[ProfileStyles.buttonSC, { backgroundColor: "#888", marginTop: 10 }]}
         onPress={() => navigation.goBack()}
       >
-        <Text style={ProfileStyles.buttonText}>Quay lại</Text>
+        <Text style={ProfileStyles.buttonTextSC}>Quay lại</Text>
       </TouchableOpacity>
     </View>
   );

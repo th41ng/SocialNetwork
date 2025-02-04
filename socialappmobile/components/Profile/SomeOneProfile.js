@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, Text, View, ActivityIndicator, FlatList, Alert, Image, TouchableOpacity } from "react-native";
+import { ScrollView, Text, View, ActivityIndicator, FlatList, Alert, Image, TouchableOpacity,ImageBackground } from "react-native";
 import { Avatar, Card } from "react-native-paper";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
@@ -39,8 +39,8 @@ const Profile = () => {
         const user = userResponse.data;
 
         // Lấy avatar và ảnh bìa từ dữ liệu
-        setAvatar(formatImageUrl(user.user.avatar) || "https://via.placeholder.com/150");
-        setCoverImage(formatImageUrl(user.user.cover_image) || "https://via.placeholder.com/600x200");
+        setAvatar(formatImageUrl(user.user.avatar) || null);
+        setCoverImage(formatImageUrl(user.user.cover_image) || null);
 
         setUserData(user);
         setPosts(user.posts || []);
@@ -57,9 +57,22 @@ const Profile = () => {
 
   const renderHeader = () => (
     <View>
-      <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
+      <View>
+        {coverImage ? (
+          <Image source={{ uri: coverImage }} style={ProfileStyles.coverImage} />
+        ) : (
+          <ImageBackground style={[ProfileStyles.coverImage, { backgroundColor: "#ccc", justifyContent: "center", alignItems: "center" }]}>
+            <Avatar.Icon size={50} icon="image" backgroundColor="#000000" />
+          </ImageBackground>
+        )}
+      </View>
+
       <View style={ProfileStyles.avatarContainer}>
-        <Image source={{ uri: avatar }} style={ProfileStyles.avatar}/>
+        {avatar ? (
+            <Image source={{ uri: avatar }} style={ProfileStyles.avatar} />
+          ) : (
+            <Avatar.Icon size={80} icon="account" backgroundColor="#000000"/>
+          )}
       </View>
       <View style={ProfileStyles.profileInfo}>
         {/* Thông tin người dùng */}
@@ -94,11 +107,18 @@ const Profile = () => {
   const renderPost = ({ item: post }) => (
     <Card style={ProfileStyles.postCard}>
       <Card.Content>
-          <View style={ProfileStyles.postAuthorInfo}>
+      <View style={ProfileStyles.postAuthorInfo}>
+          {avatar ? (
             <Image source={{ uri: avatar }} style={ProfileStyles.miniAvt} />
-            <Text style={ProfileStyles.postAuthorName}>{userData.user.username}</Text>
+          ) : (
+            <Avatar.Icon size={40} icon="account" backgroundColor="#000000" />
+          )}
+          <View style={ProfileStyles.postTextContainer}>
+          <Text style={ProfileStyles.postAuthorName}>{userData.user.username}</Text>
+          <Text style={ProfileStyles.postTime}>{formatPostTime(post.created_date)}</Text>
           </View>
-        <Text style={ProfileStyles.postTime}>{formatPostTime(post.created_date)}</Text>
+        </View>
+       
         <Text style={ProfileStyles.postText}>{post.content}</Text>
         {post.image && <Image source={{ uri: formatImageUrl(post.image)  }} style={ProfileStyles.postImage} />}
       </Card.Content>

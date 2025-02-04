@@ -94,26 +94,32 @@ const ProfileStyles = StyleSheet.create({
   },
 
   postAuthorInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "row", // Align avatar, name, and time horizontally
+    alignItems: "flex-start", // Align items to the top of the container
     marginBottom: 8,
   },
   miniAvt: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: 10, // Space between avatar and text
+  },
+  postTextContainer: {
+    flexDirection: "column", // Stack name and time vertically
+    justifyContent: "flex-start", // Align name and time to the top
   },
   postAuthorName: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#555",
+    marginBottom: 4, // Space between name and time
   },
   postTime: {
     fontSize: 12,
     color: "#888",
   },
-
+  
+  
   //Setting _ UserProfile
   settingsIcon: {
     position: "absolute",
@@ -127,6 +133,7 @@ const ProfileStyles = StyleSheet.create({
     marginTop: 55,
     position: "absolute",
     width: 250,
+    borderRadius: 10
   },
   drawerItem: {
     fontSize: 16,
@@ -190,6 +197,57 @@ avatarWrapper: {
   justifyContent: "center",
   alignItems: "center",
 },
+
+
+//
+containerSC: {
+  flex: 1,
+  backgroundColor: "#fff",
+  padding: 20,
+  justifyContent: "flex-start",
+},
+titleSC: {
+  marginTop: 20,
+  fontSize: 24,
+  fontWeight: "bold",
+  color: "#333",
+  marginBottom: 20,
+},
+formContainerSC: {
+  marginBottom: 20,
+},
+inputLabeSC: {
+  fontSize: 14,
+  marginBottom: 8,
+  fontWeight:"bold",
+},
+inputSC: {
+  height: 45,
+  borderColor: "#ddd",
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingLeft: 10,
+  marginBottom: 15,
+  fontSize: 16,
+},
+buttonSC: {
+  backgroundColor: "#000000",
+  paddingVertical: 15,
+  borderRadius: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+buttonText: {
+  fontSize: 16,
+  color: "#fff",
+  fontWeight: "bold",
+},
+buttonTextSC: {
+  fontSize: 16,
+  color: "#fff",
+  fontWeight: "bold",
+},
+
 
 });
 

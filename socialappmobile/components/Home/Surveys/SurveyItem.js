@@ -9,8 +9,9 @@ import { Ionicons } from "@expo/vector-icons";
  */
 const SurveyItem = ({ survey }) => {
   const navigation = useNavigation();
+  console.log("Thông tin survey:", survey);
+  console.log("User has responded:", survey?.user_has_responded);  // Thêm log ở đây
 
-  // Nếu không có survey, không render gì cả
   if (!survey) return null;
 
   return (
@@ -32,9 +33,10 @@ const SurveyItem = ({ survey }) => {
           styles.button,
           survey.user_has_responded && styles.buttonDisabled, // Thay đổi style của nút nếu đã hoàn thành
         ]}
-        onPress={() =>
-          navigation.navigate("TakeSurvey", { surveyId: survey.id })
-        }
+        onPress={() => {
+          console.log("Bắt đầu khảo sát");  // Thêm log để kiểm tra hành động khi nhấn
+          navigation.navigate("TakeSurvey", { surveyId: survey.id });
+        }}
         disabled={survey.user_has_responded} // Disable nút nếu đã hoàn thành
       >
         <Text style={styles.buttonText}>

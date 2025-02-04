@@ -325,16 +325,18 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                         navigation.navigate("SomeOneProfile", { userId: post.user.id });
                     }}
                 >
-                    <Avatar.Image
-                        source={{
-                            uri: post.user.avatar
-                                ? post.user.avatar.startsWith("image/upload/")
+                    {post.user.avatar ? (
+                        <Avatar.Image
+                            source={{
+                                uri: post.user.avatar.startsWith("image/upload/")
                                     ? post.user.avatar.replace("image/upload/", "")
-                                    : post.user.avatar
-                                : "https://via.placeholder.com/150",
-                        }}
-                        size={40}
-                    />
+                                    : post.user.avatar,
+                            }}
+                            size={40}
+                        />
+                    ) : (
+                        <Avatar.Icon size={40} backgroundColor="#000000" icon="account" />
+                    )}
                 </TouchableOpacity>
                 <View style={HomeStyles.headerDetails}>
                     <Text style={HomeStyles.username}>{post.user.username}</Text>
