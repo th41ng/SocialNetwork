@@ -1,5 +1,5 @@
 // components/CommentList.js
-import React, { useState, useCallback, useContext } from "react";
+import React, { useState, useCallback, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Alert,
   StyleSheet,
   TextInput,
-  Animated, 
+  Animated,
   Easing,
 } from "react-native";
 import { Avatar, Menu, Divider } from "react-native-paper";
@@ -29,8 +29,8 @@ const CommentList = ({
   state,
   handlePostReaction,
   updatedCommentId,
-  isCommentLocked, 
-  postUser 
+  isCommentLocked,
+  postUser,
 }) => {
   const user = useContext(MyUserContext);
   const navigation = useNavigation();
@@ -41,15 +41,24 @@ const CommentList = ({
   const [editingComment, setEditingComment] = useState(null);
   const [editedCommentContent, setEditedCommentContent] = useState("");
 
+  // Sử dụng useRef để lưu trữ animation state cho từng comment
+  const animationRefs = useRef({});
+
+  // Tạo animation state cho comment mới khi comment được thêm vào
+  const ensureAnimationState = useCallback((commentId) => {
+    if (!animationRefs.current[commentId]) {
+      animationRefs.current[commentId] = {
+        likeAnimation: new Animated.Value(0),
+        hahaAnimation: new Animated.Value(0),
+        loveAnimation: new Animated.Value(0),
+      };
+    }
+  }, []);
 
   const formatImageUrl = (url) => {
     const prefix = "image/upload/";
     return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
   };
-  // State cho animation
-  const [likeAnimation] = useState(new Animated.Value(0)); 
-  const [hahaAnimation] = useState(new Animated.Value(0)); 
-  const [loveAnimation] = useState(new Animated.Value(0)); 
 
   const toggleCommentMenu = (event, commentId) => {
     if (event) {
@@ -74,7 +83,10 @@ const CommentList = ({
       );
 
       // Cho phép người đăng bài xóa bất kỳ bình luận nào trong bài viết của họ
-      if (comment.data.user.id !== currentUser.id && postUser?.id !== currentUser.id) {
+      if (
+        comment.data.user.id !== currentUser.id &&
+        postUser?.id !== currentUser.id
+      ) {
         Alert.alert("Lỗi", "Bạn không có quyền xóa bình luận này.");
         return;
       }
@@ -138,7 +150,7 @@ const CommentList = ({
     }
   };
 
-  // Hàm animation 
+  // Hàm animation
   const runAnimation = (animationValue) => {
     Animated.sequence([
       Animated.timing(animationValue, {
@@ -156,121 +168,110 @@ const CommentList = ({
     ]).start();
   };
 
-  const handleCommentReaction = useCallback(
-    async (commentId, reactionType) => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          console.error("Token not found.");
-          return;
-        }
-
-        const authenticatedApis = authApis(token);
-        const userId = JSON.parse(await AsyncStorage.getItem("user")).id;
-
-        const existingReactionIndex = state.data.reactions.findIndex(
-          (r) =>
-            r.target_type === "comment" &&
-            r.target_id === commentId &&
-            r.user === userId
-        );
-
-        let response;
-        let newReactions = [...state.data.reactions];
-
-        if (existingReactionIndex !== -1) {
-          const existingReaction = newReactions[existingReactionIndex];
-          if (existingReaction.reaction_type === reactionType) {
-            response = await authenticatedApis.delete(
-              `<span class="math-inline">\{endpoints\.reactions\}</span>{existingReaction.id}/`
-            );
-            if (response.status === 204) {
-              newReactions.splice(existingReactionIndex, 1);
+    // Cập nhật handleCommentReaction để sử dụng animation state từ animationRefs
+    const handleCommentReaction = useCallback(
+        async (commentId, reactionType) => {
+          ensureAnimationState(commentId); // Đảm bảo animation state tồn tại
+          const { likeAnimation, hahaAnimation, loveAnimation } = animationRefs.current[commentId];
+    
+          try {
+            const token = await AsyncStorage.getItem("token");
+            if (!token) {
+              console.error("Token not found.");
+              return;
             }
-          } else {
-            const payload = { reaction_type: reactionType };
-            response = await authenticatedApis.patch(
-              `<span class="math-inline">\{endpoints\.reactions\}</span>{existingReaction.id}/`,
-              payload
+    
+            const authenticatedApis = authApis(token);
+            const userId = JSON.parse(await AsyncStorage.getItem("user")).id;
+    
+            const existingReactionIndex = state.data.reactions.findIndex(
+              (r) =>
+                r.target_type === "comment" &&
+                r.target_id === commentId &&
+                r.user === userId
             );
-            if (response.status === 200) {
-              newReactions[existingReactionIndex] = response.data;
+    
+            let response;
+            let newReactions = [...state.data.reactions];
+    
+            if (existingReactionIndex !== -1) {
+              const existingReaction = newReactions[existingReactionIndex];
+              if (existingReaction.reaction_type === reactionType) {
+                response = await authenticatedApis.delete(
+                  `${endpoints.reactions}${existingReaction.id}/`
+                );
+                if (response.status === 204) {
+                  newReactions.splice(existingReactionIndex, 1);
+                }
+              } else {
+                const payload = { reaction_type: reactionType };
+                response = await authenticatedApis.patch(
+                  `${endpoints.reactions}${existingReaction.id}/`,
+                  payload
+                );
+                if (response.status === 200) {
+                  newReactions[existingReactionIndex] = response.data;
+                }
+              }
+            } else {
+              const payload = {
+                target_type: "comment",
+                target_id: commentId,
+                reaction_type: reactionType,
+              };
+              response = await authenticatedApis.post(
+                endpoints.reactions,
+                payload
+              );
+              if (response.status === 201) {
+                newReactions.push(response.data);
+              }
             }
+    
+            if (
+              response &&
+              (response.status === 200 ||
+                response.status === 201 ||
+                response.status === 204)
+            ) {
+              dispatch({
+                type: "SET_REACTIONS",
+                payload: newReactions,
+              });
+    
+              const summaryResponse = await authenticatedApis.get(
+                `${endpoints.comment_detail(commentId)}reactions-summary/`
+              );
+              if (summaryResponse.status === 200) {
+                dispatch({
+                  type: "UPDATE_REACTIONS",
+                  payload: {
+                    targetType: "comment",
+                    commentId: commentId,
+                    reactionsSummary: summaryResponse.data.reaction_summary,
+                  },
+                });
+              }
+            }
+    
+            // Chạy animation
+            if (reactionType === "like") {
+              runAnimation(likeAnimation);
+            } else if (reactionType === "haha") {
+              runAnimation(hahaAnimation);
+            } else if (reactionType === "love") {
+              runAnimation(loveAnimation);
+            }
+          } catch (error) {
+            console.error(
+              "Error in handleCommentReaction:",
+              error.response || error.message
+            );
+            Alert.alert("Lỗi", "Đã có lỗi xảy ra với reaction.");
           }
-        } else {
-          const payload = {
-            target_type: "comment",
-            target_id: commentId,
-            reaction_type: reactionType,
-          };
-          response = await authenticatedApis.post(
-            endpoints.reactions,
-            payload
-          );
-          if (response.status === 201) {
-            newReactions.push(response.data);
-          }
-        }
-
-        if (
-          response &&
-          (response.status === 200 ||
-            response.status === 201 ||
-            response.status === 204)
-        ) {
-          dispatch({
-            type: "SET_REACTIONS",
-            payload: newReactions,
-          });
-
-          const summaryResponse = await authenticatedApis.get(
-            `${endpoints.comment_detail(commentId)}reactions-summary/`
-          );
-          if (summaryResponse.status === 200) {
-            dispatch({
-              type: "UPDATE_REACTIONS",
-              payload: {
-                targetType: "comment",
-                commentId: commentId,
-                reactionsSummary: summaryResponse.data.reaction_summary,
-              },
-            });
-          }
-        }
-
-        // Chạy animation
-        if (reactionType === "like") {
-          runAnimation(likeAnimation);
-        } else if (reactionType === "haha") {
-          runAnimation(hahaAnimation);
-        } else if (reactionType === "love") {
-          runAnimation(loveAnimation);
-        }
-      } catch (error) {
-        console.error(
-          "Error in handleCommentReaction:",
-          error.response || error.message
-        );
-        Alert.alert("Lỗi", "Đã có lỗi xảy ra với reaction.");
-      }
-    },
-    [dispatch, state.data.reactions, likeAnimation, hahaAnimation, loveAnimation] // Thêm animation vào dependency
-  );
-
-  const likeScale = likeAnimation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 1.2, 1],
-  });
-
-  const hahaScale = hahaAnimation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 1.2, 1],
-  });
-
-  const loveScale = loveAnimation.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 1.2, 1],
-  });
+        },
+        [state.data.reactions, animationRefs]
+      );
 
   if (!isVisible) {
     return null;
@@ -279,147 +280,175 @@ const CommentList = ({
   return (
     <View style={styles.comments}>
       {/* Ẩn AddComment nếu isCommentLocked là true */}
-      {!isCommentLocked && <AddComment postId={postId} dispatch={dispatch} state={state} />}
-      {comments.map((comment) => (
-        <View key={comment.id} style={styles.commentContainer}>
-          <View style={styles.comment}>
-            <View style={styles.commentHeader}>
-              <Avatar.Image
-                source={{
-                  uri: formatImageUrl(comment.user?.avatar) || "https://via.placeholder.com/150",
-                }}
-                size={40}
-                style={styles.commentAvatar}
-              />
-              <View style={styles.userInfo}>
-                <Text style={styles.commentUsername}>
-                  {comment.user?.username || "Anonymous"}
-                </Text>
-              </View>
-              {/* Hiển thị nút "more-vert" cho chủ comment và chủ bài viết */}
-              {(comment.user?.id === user?.id || postUser?.id === user?.id) && (
-                <TouchableOpacity
-                  onPress={(event) => toggleCommentMenu(event, comment.id)}
-                >
-                  <MaterialIcons name="more-vert" size={24} color="black" />
-                </TouchableOpacity>
-              )}
-            </View>
-            <View style={styles.commentContentContainer}>
-              {editingComment?.id === comment.id ? (
-                <>
-                  <TextInput
-                    value={editedCommentContent}
-                    onChangeText={setEditedCommentContent}
-                    multiline
-                    style={styles.editInput}
-                  />
-                  <View style={styles.editButtons}>
-                    <TouchableOpacity onPress={handleUpdateComment}>
-                      <Text style={styles.updateButton}>Cập nhật</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleCancelEdit}>
-                      <Text style={styles.cancelButton}>Hủy</Text>
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : (
-                <RenderHtml
-                  contentWidth={width}
-                  source={{ html: comment.content }}
-                  baseStyle={styles.commentContent}
+      {!isCommentLocked && (
+        <AddComment postId={postId} dispatch={dispatch} state={state} />
+      )}
+      {comments.map((comment) => {
+        // Đảm bảo animation state được tạo cho mỗi comment
+        ensureAnimationState(comment.id);
+
+        const { likeAnimation, hahaAnimation, loveAnimation } =
+          animationRefs.current[comment.id];
+
+        const likeScale = likeAnimation.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [1, 1.2, 1],
+        });
+
+        const hahaScale = hahaAnimation.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [1, 1.2, 1],
+        });
+
+        const loveScale = loveAnimation.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [1, 1.2, 1],
+        });
+
+        return (
+          <View key={comment.id} style={styles.commentContainer}>
+            <View style={styles.comment}>
+              <View style={styles.commentHeader}>
+                <Avatar.Image
+                  source={{
+                    uri:
+                      formatImageUrl(comment.user?.avatar) ||
+                      "https://via.placeholder.com/150",
+                  }}
+                  size={40}
+                  style={styles.commentAvatar}
                 />
-              )}
-            </View>
-            <View style={styles.reactionRow}>
-            <Animated.View style={{ transform: [{ scale: likeScale }] }}>
-                <TouchableOpacity
-                  style={styles.reactionButton}
-                  onPress={() => handleCommentReaction(comment.id, "like")}
-                >
-                  <Text style={styles.reactionIcon}>👍</Text>
-                  <Text style={styles.reactionCount}>
-                    {comment.reaction_summary?.like || 0}
+                <View style={styles.userInfo}>
+                  <Text style={styles.commentUsername}>
+                    {comment.user?.username || "Anonymous"}
                   </Text>
-                </TouchableOpacity>
-              </Animated.View>
+                </View>
+                {/* Hiển thị nút "more-vert" cho chủ comment và chủ bài viết */}
+                {(comment.user?.id === user?.id ||
+                  postUser?.id === user?.id) && (
+                  <TouchableOpacity
+                    onPress={(event) => toggleCommentMenu(event, comment.id)}
+                  >
+                    <MaterialIcons name="more-vert" size={24} color="black" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.commentContentContainer}>
+                {editingComment?.id === comment.id ? (
+                  <>
+                    <TextInput
+                      value={editedCommentContent}
+                      onChangeText={setEditedCommentContent}
+                      multiline
+                      style={styles.editInput}
+                    />
+                    <View style={styles.editButtons}>
+                      <TouchableOpacity onPress={handleUpdateComment}>
+                        <Text style={styles.updateButton}>Cập nhật</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={handleCancelEdit}>
+                        <Text style={styles.cancelButton}>Hủy</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <RenderHtml
+                    contentWidth={width}
+                    source={{ html: comment.content }}
+                    baseStyle={styles.commentContent}
+                  />
+                )}
+              </View>
+              <View style={styles.reactionRow}>
+                <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+                  <TouchableOpacity
+                    style={styles.reactionButton}
+                    onPress={() => handleCommentReaction(comment.id, "like")}
+                  >
+                    <Text style={styles.reactionIcon}>👍</Text>
+                    <Text style={styles.reactionCount}>
+                      {comment.reaction_summary?.like || 0}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
 
-              <Animated.View style={{ transform: [{ scale: hahaScale }] }}>
-                <TouchableOpacity
-                  style={styles.reactionButton}
-                  onPress={() => handleCommentReaction(comment.id, "haha")}
-                >
-                  <Text style={styles.reactionIcon}>😂</Text>
-                  <Text style={styles.reactionCount}>
-                    {comment.reaction_summary?.haha || 0}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
+                <Animated.View style={{ transform: [{ scale: hahaScale }] }}>
+                  <TouchableOpacity
+                    style={styles.reactionButton}
+                    onPress={() => handleCommentReaction(comment.id, "haha")}
+                  >
+                    <Text style={styles.reactionIcon}>😂</Text>
+                    <Text style={styles.reactionCount}>
+                      {comment.reaction_summary?.haha || 0}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
 
-              <Animated.View style={{ transform: [{ scale: loveScale }] }}>
-                <TouchableOpacity
-                  style={styles.reactionButton}
-                  onPress={() => handleCommentReaction(comment.id, "love")}
-                >
-                  <Text style={styles.reactionIcon}>❤️</Text>
-                  <Text style={styles.reactionCount}>
-                    {comment.reaction_summary?.love || 0}
-                  </Text>
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
-            <Menu
-              visible={isCommentMenuVisible && currentComment === comment.id}
-              onDismiss={toggleCommentMenu}
-              anchor={anchorComment}
-            >
-              {/* Hiển thị menu cho chủ comment và chủ bài viết */}
-              {(comment.user?.id === user?.id || postUser?.id === user?.id) && (
-                <>
-                {/* Chỉ hiển thị "Sửa" cho chủ comment */}
-                  {comment.user?.id === user?.id && (
+                <Animated.View style={{ transform: [{ scale: loveScale }] }}>
+                  <TouchableOpacity
+                    style={styles.reactionButton}
+                    onPress={() => handleCommentReaction(comment.id, "love")}
+                  >
+                    <Text style={styles.reactionIcon}>❤️</Text>
+                    <Text style={styles.reactionCount}>
+                      {comment.reaction_summary?.love || 0}
+                    </Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+              <Menu
+                visible={isCommentMenuVisible && currentComment === comment.id}
+                onDismiss={toggleCommentMenu}
+                anchor={anchorComment}
+              >
+                {/* Hiển thị menu cho chủ comment và chủ bài viết */}
+                {(comment.user?.id === user?.id ||
+                  postUser?.id === user?.id) && (
+                  <>
+                    {/* Chỉ hiển thị "Sửa" cho chủ comment */}
+                    {comment.user?.id === user?.id && (
+                      <Menu.Item
+                        onPress={() => {
+                          handleEditComment(comment);
+                          toggleCommentMenu();
+                        }}
+                        title="Sửa bình luận"
+                      />
+                    )}
+                    <Divider />
                     <Menu.Item
                       onPress={() => {
-                        handleEditComment(comment);
-                        toggleCommentMenu();
-                      }}
-                      title="Sửa bình luận"
-                    />
-                  )}
-                  <Divider />
-                  <Menu.Item
-                    onPress={() => {
-                      Alert.alert(
-                        "Xác nhận xóa",
-                        "Bạn có chắc chắn muốn xóa bình luận này?",
-                        [
-                          {
-                            text: "Hủy",
-                            style: "cancel",
-                          },
-                          {
-                            text: "Xóa",
-                            onPress: () => {
-                              handleDeleteComment(comment.id);
-                              toggleCommentMenu();
+                        Alert.alert(
+                          "Xác nhận xóa",
+                          "Bạn có chắc chắn muốn xóa bình luận này?",
+                          [
+                            {
+                              text: "Hủy",
+                              style: "cancel",
                             },
-                          },
-                        ],
-                        { cancelable: false }
-                      );
-                    }}
-                    title="Xóa bình luận"
-                  />
-                </>
-              )}
-            </Menu>
+                            {
+                              text: "Xóa",
+                              onPress: () => {
+                                handleDeleteComment(comment.id);
+                                toggleCommentMenu();
+                              },
+                            },
+                          ],
+                          { cancelable: false }
+                        );
+                      }}
+                      title="Xóa bình luận"
+                    />
+                  </>
+                )}
+              </Menu>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   comments: {
