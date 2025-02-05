@@ -4,17 +4,20 @@ import {
   View,
   ActivityIndicator,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
 import Navbar from "../Navbar";
 import SurveyItem from "./SurveyItem";
 import { fetchAllSurveys } from "../../../configs/APIs";
 import HomeStyles from "../HomeStyles";
+
 const Surveys = () => {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false); 
   const navigation = useNavigation();
-  const route = useRoute(); 
+  const route = useRoute();
 
   const loadSurveys = useCallback(async () => {
     try {
@@ -30,13 +33,19 @@ const Surveys = () => {
   useFocusEffect(
     useCallback(() => {
       loadSurveys();
-        return () => {
-          if (route.params?.refresh) {
-              navigation.setParams({ refresh: false });
-          }
-        };
+      return () => {
+        if (route.params?.refresh) {
+          navigation.setParams({ refresh: false });
+        }
+      };
     }, [loadSurveys, route.params])
   );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadSurveys(); 
+    setIsRefreshing(false);
+  };
 
   if (loading) {
     return (
@@ -57,6 +66,12 @@ const Surveys = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SurveyItem survey={item} />}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing} 
+            onRefresh={handleRefresh} 
+          />
+        }
       />
       <Navbar navigation={navigation} />
     </View>
