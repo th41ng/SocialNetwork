@@ -8,6 +8,7 @@ import { useNavigation } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
   const user = useContext(MyUserContext);
@@ -139,6 +140,7 @@ const Profile = () => {
   );
 
   return (
+    <SafeAreaView style={styles.safeArea}>
     <View style={ProfileStyles.container}>
       <FlatList
         data={posts}
@@ -174,6 +176,7 @@ const Profile = () => {
         </Drawer.Section>
       )}
     </View>
+    </SafeAreaView>
   );
 };
 

@@ -19,6 +19,22 @@ const AuthStyle = StyleSheet.create({
     alignItems: "center", 
   },
 
+  imagePicker: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 10,
+  },
+  
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+
 });
 
 export default AuthStyle;

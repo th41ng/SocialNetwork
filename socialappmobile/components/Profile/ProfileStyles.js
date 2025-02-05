@@ -94,8 +94,8 @@ const ProfileStyles = StyleSheet.create({
   },
 
   postAuthorInfo: {
-    flexDirection: "row", // Align avatar, name, and time horizontally
-    alignItems: "flex-start", // Align items to the top of the container
+    flexDirection: "row", 
+    alignItems: "flex-start", 
     marginBottom: 8,
   },
   miniAvt: {
