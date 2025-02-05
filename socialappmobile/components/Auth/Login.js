@@ -130,7 +130,8 @@ const Login = () => {
         await AsyncStorage.removeItem("token");
         return;
       }
-    } catch (loginError) {
+    }
+     catch (loginError) {
       Alert.alert("Lỗi", "Đăng nhập thất bại.");
     } finally {
       setLoading(false);

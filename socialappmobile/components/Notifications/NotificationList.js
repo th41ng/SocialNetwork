@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useReducer, useContext } from "react";
-import { View, Text, ActivityIndicator, FlatList } from "react-native";
+import { View, Text, ActivityIndicator, FlatList, RefreshControl } from "react-native";
 import { Card, Title, Paragraph } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import Navbar from "../Home/Navbar";
@@ -30,61 +29,58 @@ const reducer = (state, action) => {
 
 const EventList = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const user = useContext(MyUserContext); 
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          console.warn("Token không tồn tại hoặc chưa được lưu.");
-          return;
-        }
-
-        const api = authApis(token);
-        const response = await api.get(endpoints.notification);
-        console.log("Toàn bộ dữ liệu trả về từ API:", response.data);
-
-        if (response.data && response.data.results) {
-          const eventsWithDetails = await Promise.all(
-            response.data.results.map(async (notification) => {
-              const eventId = notification.event;  
-              const eventResponse = await api.get(`${endpoints.events}${eventId}/`);  
-              return {
-                ...notification, 
-                eventDetails: eventResponse.data,  
-                
-              };
-            })
-            
-          );
-          dispatch({ type: "FETCH_SUCCESS", payload: eventsWithDetails });
-        } else {
-          dispatch({ type: "FETCH_ERROR", payload: "Không tìm thấy dữ liệu sự kiện" });
-        }
-      } catch (err) {
-        console.error("Lỗi khi gọi API:", err.response?.data || err.message);
-        dispatch({ type: "FETCH_ERROR", payload: err.message });
+  const fetchEvents = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        console.warn("Token không tồn tại hoặc chưa được lưu.");
+        return;
       }
-    };
 
+      const api = authApis(token);
+      const response = await api.get(endpoints.notification);
+      console.log("Toàn bộ dữ liệu trả về từ API:", response.data);
+
+      if (response.data && response.data.results) {
+        const eventsWithDetails = await Promise.all(
+          response.data.results.map(async (notification) => {
+            const eventId = notification.event;  
+            const eventResponse = await api.get(`${endpoints.events}${eventId}/`);  
+            return {
+              ...notification, 
+              eventDetails: eventResponse.data,  
+            };
+          })
+        );
+        dispatch({ type: "FETCH_SUCCESS", payload: eventsWithDetails });
+      } else {
+        dispatch({ type: "FETCH_SUCCESS", payload: [] });
+      }
+    } catch (err) {
+      console.error("Lỗi khi gọi API:", err.response?.data || err.message);
+      dispatch({ type: "FETCH_SUCCESS", payload: [] });
+    }
+  };
+
+  useEffect(() => {
     fetchEvents();
   }, []);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchEvents();
+    setIsRefreshing(false);
+  };
 
   if (state.loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6200ee" />
         <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
-      </View>
-    );
-  }
-
-  if (state.error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{state.error}</Text>
       </View>
     );
   }
@@ -113,23 +109,26 @@ const EventList = () => {
       </Card.Content>
     </Card>
   );
-  
-  
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.header}>Danh sách sự kiện</Text>
-        {state.notifications.length === 0 ? (
-          <Text style={styles.noEventsText}>Không có sự kiện nào.</Text>
-        ) : (
-          <FlatList
-            data={state.notifications}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={styles.flatListContent}
-          />
-        )}
+        <FlatList
+          data={state.notifications}
+          renderItem={state.notifications.length > 0 ? renderItem : null}
+          keyExtractor={(item, index) => (item.id ? item.id.toString() : index.toString())}
+          contentContainerStyle={styles.flatListContent}
+          ListEmptyComponent={
+            <Text style={styles.noEventsText}>Không có sự kiện nào.</Text>
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}  
+              onRefresh={handleRefresh}  
+            />
+          }
+        />
       </View>
 
       <Navbar navigation={navigation} />

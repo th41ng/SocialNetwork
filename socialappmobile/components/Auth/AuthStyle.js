@@ -18,7 +18,6 @@ const AuthStyle = StyleSheet.create({
     marginTop:10,
     alignItems: "center", 
   },
-
   imagePicker: {
     alignItems: "center",
     justifyContent: "center",
@@ -34,7 +33,7 @@ const AuthStyle = StyleSheet.create({
     height: 100,
     borderRadius: 50,
   },
-
+  
 });
 
 export default AuthStyle;

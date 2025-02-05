@@ -51,7 +51,7 @@ const AllUserChat = () => {
         <Avatar.Icon icon="account" size={55} style={ChatStyle.avatar} backgroundColor="#000000" />
       )}
       <View style={ChatStyle.userInfo}>
-        <Text style={ChatStyle.userName}>{item.first_name || item.username} {item.last_name}</Text>
+        <Text style={ChatStyle.userName}>{item.username}</Text>
         <Text style={ChatStyle.userEmail}>{item.email}</Text>
       </View>
     </TouchableOpacity>
