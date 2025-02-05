@@ -33,10 +33,10 @@ admin.site.register(Role, RoleAdmin)
 
 # User Admin
 class UserAdmin(admin.ModelAdmin):
-    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active', 'student_id_verified']
+    list_display = ['username', 'first_name', 'last_name', 'email', 'role', 'student_id', 'is_active','student_id_verified']
     list_filter = ['role', 'is_active', 'student_id_verified']
     search_fields = ['username', 'first_name', 'last_name', 'student_id', 'email']
-    readonly_fields = ['password_reset_deadline']
+    readonly_fields = ['password_reset_deadline','student_id_verified']
     actions = ['mark_student_id_verified','extend_password_reset_deadline']
 
 
