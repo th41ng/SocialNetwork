@@ -20,10 +20,12 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);  
   const dispatch = useContext(MyDispatchContext);
   const navigation = useNavigation();
-
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword); 
+  };
 
     useEffect(() => {
       const autoLogin = async () => {
@@ -104,8 +106,8 @@ const Login = () => {
           const password_reset_deadline = new Date(userData.password_reset_deadline);
           const currentTime = new Date();
           const timeDifference = (currentTime - password_reset_deadline) / (1000 * 60 * 60);
-
-          if (timeDifference > 24) {
+          console.log("timDF:",timeDifference);
+          if (timeDifference > 0) {
             Alert.alert("Lỗi", "Thời gian thay đổi mật khẩu đã quá 24 giờ. Vui lòng liên hệ quản trị viên.");
             await AsyncStorage.removeItem("token");
             return;
@@ -129,46 +131,49 @@ const Login = () => {
         return;
       }
     } catch (loginError) {
-      console.error("Login error:", loginError);
-      Alert.alert("Lỗi", "Đăng nhập thất bại. Vui lòng thử lại.");
+      Alert.alert("Lỗi", "Đăng nhập thất bại.");
     } finally {
       setLoading(false);
     }
   };
 
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={AuthStyle.container}
+      >
+        <TextInput
+          label="Tên đăng nhập"
+          value={username}
+          onChangeText={setUsername}
+          style={AuthStyle.input}
+          mode="outlined"
+          right={<TextInput.Icon icon="account" />}
+        />
+        <TextInput
+          label="Mật khẩu"
+          value={password}
+          onChangeText={setPassword}
+          style={AuthStyle.input}
+          secureTextEntry={!showPassword}  
+          mode="outlined"
+          right={
+            <TextInput.Icon
+              icon={showPassword ? "eye-off" : "eye"}  
+              onPress={togglePasswordVisibility}  
+            />
+          }
+        />
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={AuthStyle.container}
-    >
-      <TextInput
-        label="Tên đăng nhập"
-        value={username}
-        onChangeText={setUsername}
-        style={AuthStyle.input}
-        mode="outlined"
-        right={<TextInput.Icon icon="account" />}
-      />
-      <TextInput
-        label="Mật khẩu"
-        value={password}
-        onChangeText={setPassword}
-        style={AuthStyle.input}
-        secureTextEntry
-        mode="outlined"
-        right={<TextInput.Icon icon="eye" />}
-      />
-
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-        <Switch value={rememberMe} onValueChange={setRememberMe} />
-        <Text style={{ marginLeft: 8 }}>Lưu thông tin đăng nhập</Text>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Switch thumbColor={rememberMe ? "#000000" : "#d3d3d3"} trackColor={{ false: "#767577", true: "#81b0ff" }} value={rememberMe} onValueChange={setRememberMe} />
+        <Text style={{ marginLeft: 8}}>Lưu thông tin đăng nhập</Text>
       </View>
-
+      <View style={AuthStyle.buttonContainer}>
       <Button onPress={login} loading={loading} style={AuthStyle.button} icon="login" mode="contained">
         Đăng nhập
       </Button>
-
+      </View>
       <TouchableOpacity onPress={() => navigation.navigate("Register")} style={AuthStyle.link}>
         <Text style={AuthStyle.linkText}>Chưa có tài khoản? Đăng ký ngay</Text>
       </TouchableOpacity>

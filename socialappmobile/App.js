@@ -9,15 +9,18 @@ import EditProfileScreen from './components/Profile/EditProfile';
 import UserSecurityScreen from './components/Profile/UserSecurity';
 import { MyUserContext, MyDispatchContext } from './configs/UserContext';
 import MyUserReducer from './configs/UserReducers';
-import HomeScreen from './components/Home/Home';
-import CreatePost from './components/Home/CreatePost';  
+import HomeScreen from './components/Home/Posts/Home';
+import CreatePost from './components/Home/Posts/CreatePost';  
 import NotificationListScreen from './components/Notifications/NotificationList';
-import EditPost from './components/Home/EditPost';
-import EditComment from './components/Home/EditComment';
+import EditPost from './components/Home/Posts/EditPost';
+import EditComment from './components/Home/Comments/EditComment';
 import SomeOneProfileScreen from './components/Profile/SomeOneProfile';
-import Surveys from './components/Home/Survey';
-import TakeSurvey from './components/Home/TakeSurvey';
+import Surveys from './components/Home/Surveys/Survey';
+import TakeSurvey from './components/Home/Surveys/TakeSurvey';
 import ChatScreen from './components/Messege/Chats';
+import AllUserChatScreen from './components/Messege/AllUserChat';
+import { SafeAreaProvider } from "react-native-safe-area-context"; 
+
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -25,6 +28,7 @@ export default function App() {
   const [user, dispatch] = useReducer(MyUserReducer, initialState);
 
   return (
+    <SafeAreaProvider>
     <PaperProvider>
       <NavigationContainer>
         <MyUserContext.Provider value={user}>
@@ -38,34 +42,18 @@ export default function App() {
               <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
               <Stack.Screen name="CreatePost" component={CreatePost} options={{ headerShown: false }} />
               <Stack.Screen name="NotificationList" component={NotificationListScreen} options={{ headerShown: false }} />
-              {/* <Stack.Screen 
-                name="Home" 
-                component={HomeScreen} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="CreatePost" 
-                component={CreatePost} 
-                options={{ headerShown: false }} 
-              /> */}
               <Stack.Screen name="EditPost" component={EditPost} options={{ headerShown: false }} />
               <Stack.Screen name="EditComment" component={EditComment} options={{ headerShown: false }}/>
               <Stack.Screen name="SomeOneProfile" component={SomeOneProfileScreen} options={{ headerShown: false }}/>
               <Stack.Screen name="Chats" component={ChatScreen} options={{ headerShown: false }}/>
-              <Stack.Screen 
-                name="Surveys" 
-                component={Surveys} 
-                options={{ headerShown: false }} 
-              />
-               <Stack.Screen 
-                name="TakeSurvey" 
-                component={TakeSurvey} 
-                options={{ title: 'Take Survey' }} 
-              />
+              <Stack.Screen name="AllUserChat" component={AllUserChatScreen} options={{headerShown: false}}/>
+              <Stack.Screen name="Surveys" component={Surveys} options={{ headerShown: false }} />
+              <Stack.Screen name="TakeSurvey" component={TakeSurvey} options={{ title: 'Take Survey' }} />
             </Stack.Navigator>
           </MyDispatchContext.Provider>
         </MyUserContext.Provider>
       </NavigationContainer>
     </PaperProvider>
+</SafeAreaProvider>
   );
 }

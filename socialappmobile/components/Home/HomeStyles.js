@@ -1,23 +1,22 @@
-import { StyleSheet, Dimensions } from 'react-native';
-
+import { StyleSheet, Dimensions, StatusBar } from 'react-native'; 
 const screenWidth = Dimensions.get("window").width;
 
 const HomeStyles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#FAFAFA",
+        backgroundColor: "#F9FAFB",
     },
     header: {
         justifyContent: "center",
         alignItems: "center",
-        padding: 15,
+        paddingTop: StatusBar.currentHeight,
         backgroundColor: "#FFF",
         elevation: 3,
     },
     appName: {
         fontSize: 20,
         fontWeight: "bold",
-        color: "#333",
+        color: "#1F2937",
     },
     navbar: {
         flexDirection: "row",
@@ -25,7 +24,7 @@ const HomeStyles = StyleSheet.create({
         paddingVertical: 10,
         backgroundColor: "#FFF",
         borderTopWidth: 1,
-        borderTopColor: "#DDD",
+        borderTopColor: "#E5E7EB",
     },
     navItem: {
         alignItems: "center",
@@ -38,7 +37,7 @@ const HomeStyles = StyleSheet.create({
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: "#007AFF",
+        backgroundColor: "#000000",
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -47,14 +46,15 @@ const HomeStyles = StyleSheet.create({
         elevation: 5,
     },
     postContainer: {
-        margin: 10,
+        marginVertical: 10,
+        marginHorizontal: 15,
         backgroundColor: "#FFF",
-        borderRadius: 10,
-        padding: 10,
+        borderRadius: 15,
+        padding: 12,
         shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOpacity: 0.08,
+        shadowRadius: 5,
+        elevation: 3,
     },
     postHeader: {
         flexDirection: "row",
@@ -66,26 +66,32 @@ const HomeStyles = StyleSheet.create({
     },
     username: {
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: 16,
+        color: "#1F2937",
     },
     timeText: {
         fontSize: 12,
-        color: "#777",
+        color: "#6B7280",
     },
     postContent: {
         fontSize: 14,
-        color: "#333",
+        color: "#374151",
+        marginTop: 8,
+        lineHeight: 20,
     },
     postImage: {
         width: "100%",
         height: 200,
-        borderRadius: 10,
+        borderRadius: 15,
         marginTop: 10,
     },
     interactionRow: {
         flexDirection: "row",
         justifyContent: "space-evenly",
-        marginTop: 10,
+        marginTop: 12,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: "#E5E7EB",
     },
     interactionButton: {
         flexDirection: "row",
@@ -94,6 +100,8 @@ const HomeStyles = StyleSheet.create({
     reactionText: {
         marginLeft: 5,
         fontSize: 14,
+        fontWeight: "500",
+        color: "#4B5563",
     },
     comments: {
         marginTop: 15,
@@ -110,10 +118,10 @@ const HomeStyles = StyleSheet.create({
     commentUsername: {
         fontWeight: "bold",
         fontSize: 14,
-        color: "#333",
+        color: "#1F2937",
     },
     commentContent: {
-        color: "#555",
+        color: "#6B7280",
         fontSize: 14,
     },
     reactionRow: {

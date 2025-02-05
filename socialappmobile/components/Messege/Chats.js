@@ -1,27 +1,29 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from "react-native";
+import { IconButton } from 'react-native-paper';
+
 import { database } from "./FirebaseConfig";
 import { ref, push, onValue } from "firebase/database";
 import { MyDispatchContext, MyUserContext } from "../../configs/UserContext";
 import ChatStyle from "./ChatStyle";
 
 const Chats = ({ navigation, route }) => {
-  const { userId } = route.params; // Lấy userId của người nhận
-  const currentUser = useContext(MyUserContext); // Lấy người dùng hiện tại từ Context
+  const { userId, username } = route.params; 
+  const currentUser = useContext(MyUserContext); 
 
-  const [messages, setMessages] = useState([]); // Danh sách tin nhắn
-  const [message, setMessage] = useState(""); // Tin nhắn nhập vào
+  const [messages, setMessages] = useState([]); 
+  const [message, setMessage] = useState(""); 
 
-  // Tạo chatId dựa trên userId và currentUser.id
   const chatId =
     currentUser.id < userId
       ? `${currentUser.id}_${userId}`
       : `${userId}_${currentUser.id}`;
-  console.log("userId:", userId);
-  console.log("currentUserId:",currentUser.id );
-  console.log("chatId:", chatId);
-  // Lấy dữ liệu tin nhắn từ Firebase
+
   useEffect(() => {
+    console.log("userId:", userId);
+    console.log("currentUserId:", currentUser.id);
+    console.log("chatId:", chatId);
+
     const messagesRef = ref(database, `chats/${chatId}`);
     const unsubscribe = onValue(messagesRef, (snapshot) => {
       const data = snapshot.val();
@@ -29,10 +31,9 @@ const Chats = ({ navigation, route }) => {
       setMessages(loadedMessages);
     });
 
-    return () => unsubscribe(); // Hủy đăng ký khi rời màn hình
-  }, [chatId]);
+    return () => unsubscribe(); 
+  }, [chatId]); 
 
-  // Hàm gửi tin nhắn
   const sendMessage = async () => {
     if (message.trim() === "") return;
 
@@ -40,13 +41,13 @@ const Chats = ({ navigation, route }) => {
     await push(messagesRef, {
       text: message,
       timestamp: Date.now(),
-      from: currentUser.id, // ID người gửi
+      from: currentUser.id, 
     });
 
-    setMessage(""); // Reset tin nhắn sau khi gửi
+    setMessage(""); 
   };
 
-  // Hiển thị tin nhắn
+
   const renderMessage = ({ item }) => (
     <View
       style={[
@@ -63,12 +64,13 @@ const Chats = ({ navigation, route }) => {
 
   return (
     <View style={ChatStyle.container}>
+      <IconButton icon="arrow-left" size={28} onPress={() => navigation.goBack()} />
+
       <FlatList
         data={messages}
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderMessage}
         style={ChatStyle.messagesList}
-        inverted // Đảo ngược thứ tự hiển thị tin nhắn
       />
       <View style={ChatStyle.inputContainer}>
         <TextInput
@@ -86,4 +88,3 @@ const Chats = ({ navigation, route }) => {
 };
 
 export default Chats;
-

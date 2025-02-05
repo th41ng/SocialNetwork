@@ -1,4 +1,3 @@
-// screens/Surveys.js
 import React, { useCallback, useState, useEffect } from "react";
 import {
   Text,
@@ -6,15 +5,16 @@ import {
   ActivityIndicator,
   FlatList,
 } from "react-native";
-import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import Navbar from "./Navbar";
+import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
+import Navbar from "../Navbar";
 import SurveyItem from "./SurveyItem";
-import { fetchAllSurveys } from "../../configs/APIs"
-import HomeStyles from "./HomeStyles";
+import { fetchAllSurveys } from "../../../configs/APIs";
+import HomeStyles from "../HomeStyles";
 const Surveys = () => {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  const route = useRoute(); 
 
   const loadSurveys = useCallback(async () => {
     try {
@@ -30,7 +30,12 @@ const Surveys = () => {
   useFocusEffect(
     useCallback(() => {
       loadSurveys();
-    }, [loadSurveys])
+        return () => {
+          if (route.params?.refresh) {
+              navigation.setParams({ refresh: false });
+          }
+        };
+    }, [loadSurveys, route.params])
   );
 
   if (loading) {
@@ -44,9 +49,9 @@ const Surveys = () => {
 
   return (
     <View style={HomeStyles.container}>
-        <View style={HomeStyles.header}>
-            <Text style={HomeStyles.appName}>SocialApp</Text>
-        </View>
+      <View style={HomeStyles.header}>
+        <Text style={HomeStyles.appName}>SocialApp</Text>
+      </View>
       <FlatList
         data={surveys}
         keyExtractor={(item) => item.id.toString()}

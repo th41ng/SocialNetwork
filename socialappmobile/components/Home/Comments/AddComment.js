@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useContext } from "react"; 
-import { View, TextInput, Button, StyleSheet, Alert } from "react-native";
-import { authApis, endpoints } from "../../configs/APIs";
+import { View, TextInput, Button, StyleSheet, Alert, StatusBar } from "react-native";
+import { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MyUserContext } from "../../configs/UserContext"; 
+import { MyUserContext } from "../../../configs/UserContext"; 
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AddComment = ({ postId, dispatch }) => {
   const [content, setContent] = useState("");
@@ -36,10 +37,10 @@ const AddComment = ({ postId, dispatch }) => {
       const res = await authApis(token).post(endpoints["comments"], data);
 
       if (res.status === 201) {
-        Alert.alert("Thông báo", "Bình luận thành công!");
+       
         setContent("");
 
-        // Dispatch action để cập nhật danh sách comments
+       
         dispatch({
           type: "ADD_COMMENT",
           payload: res.data, 
@@ -57,7 +58,7 @@ const AddComment = ({ postId, dispatch }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
         <View style={styles.inputContainer}>
             <TextInput
                 placeholder="Nhập bình luận của bạn..."
@@ -71,15 +72,16 @@ const AddComment = ({ postId, dispatch }) => {
             title="Bình luận"
             onPress={handleAddComment}
             disabled={!content.trim() || loading}
-            color="#2196F3" 
+            color="#000000" 
         />
-    </View>
+    </SafeAreaView>
 );
 };
 
 const styles = StyleSheet.create({
 container: {
-    padding: 10,
+  padding: 10,
+  flex: 1, 
 },
 inputContainer: {
     flexDirection: 'row',

@@ -1,207 +1,256 @@
-import { StyleSheet } from 'react-native';
+
+import { StyleSheet } from "react-native";
 
 const ProfileStyles = StyleSheet.create({
-  
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f9f9f9",
-  },
-  settingsIcon: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  coverImageContainer: {
-    position: 'relative',
-    marginBottom: 20,
-    borderRadius: 10,
-    overflow: 'hidden',
+    backgroundColor: "#f5f5f5",
   },
   coverImage: {
-    width: '100%',
-    height: 240,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
   },
   avatarContainer: {
-    alignItems: 'center',
-    marginTop: -80,
-  },
-  avatarWrapper: {
-    borderWidth: 5,
-    borderColor: '#fff',
-    borderRadius: 60,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 4,
+    alignItems: "center",
+    marginTop: -60,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    borderWidth: 5,
+    borderColor: "#fff",
   },
   profileInfo: {
-    alignItems: 'center',
-    marginTop: 20,
-    paddingHorizontal: 16,
+    alignItems: "center",
+    marginTop: 10,
   },
   username: {
     fontSize: 22,
-    fontWeight: 'bold',
-    marginVertical: 10,
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   infoText: {
     fontSize: 14,
-    color: '#666',
-    marginVertical: 4,
+    color: "#666",
+    marginTop: 5,
   },
-  drawerWrapper: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 250,
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    zIndex: 100,
-    flexDirection: 'column',
-    paddingTop: 60,
+  messageButtonContainer: {
+    alignItems: "center",
+    marginTop: 20,
   },
-  drawerContent: {
-    backgroundColor: '#fff',
-    flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    borderTopLeftRadius: 15,
-    borderBottomLeftRadius: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
+  messageButton: {
+    backgroundColor: "#000000",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
   },
-  drawerSection: {
-    position: "absolute",
-    top: 70,  // Điều chỉnh lại vị trí nếu cần thiết
-    right: 0,  // Đảm bảo Drawer mở ra từ bên phải
-    width: 250,  // Thay đổi chiều rộng để làm cho Drawer rộng hơn
-    backgroundColor: "white",  // Màu nền trắng cho Drawer
-    padding: 20,  // Thêm padding để các mục trong Drawer không bị sát vào nhau
-    borderRadius: 10,  // Bo góc để Drawer đẹp hơn
-    shadowColor: "#000",  // Thêm bóng cho Drawer
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-    zIndex: 100,  // Đảm bảo Drawer nằm trên các phần tử khác
-    height: "100%",  // Đảm bảo Drawer chiếm hết chiều cao màn hình
-  },
-  drawerItem: {
-    color: "#333",  // Màu chữ tối để dễ đọc
-    fontSize: 16,  // Kích thước chữ hợp lý
-    fontWeight: "bold",  // Tạo sự nổi bật cho chữ
-  },
-  postsContainer: {
-    marginTop: 30,
-    paddingHorizontal: 16,
-  },
-  noPostsText: {
-    textAlign: 'center',
+  messageButtonText: {
+    color: "#fff",
     fontSize: 16,
-    color: '#888',
+    fontWeight: "bold",
   },
-  postItem: {
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    padding: 15,
+  postHeaderContainer: {
+    marginVertical: 15,
+    marginLeft: 20,
+  },
+  postHeaderText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  postCard: {
+    margin: 10,
+    backgroundColor: "#fff",
     borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   postText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  button: {
-    backgroundColor: '#0066cc',
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  // New Styles for improved input and button presentation
-  formContainer: {
-    marginTop: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
+    marginVertical: 10,
+  },
+  postImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "cover",
+    borderRadius: 8,
+  },
+  noPostsText: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#888",
+    marginTop: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#f44336",
+  },
+
+  postAuthorInfo: {
+    flexDirection: "row", // Align avatar, name, and time horizontally
+    alignItems: "flex-start", // Align items to the top of the container
     marginBottom: 8,
   },
-  input: {
+  miniAvt: {
+    width: 40,
     height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    backgroundColor: '#fff',
-  },
-  saveButton: {
-    marginTop: 20,
-    backgroundColor: '#0066cc',
-    paddingVertical: 12,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  logoutButton: {
-    marginTop: 20,
-    backgroundColor: '#d9534f',
-    paddingVertical: 12,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  changeCoverButton: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
     borderRadius: 20,
+    marginRight: 10, 
   },
-  changeCoverText: {
-    color: '#fff',
-    fontSize: 14,
+  postTextContainer: {
+    flexDirection: "column", 
+    justifyContent: "flex-start",
   },
-  postsContainer: { marginHorizontal: 10, marginTop: 20 },
-  postsHeader: { fontSize: 18, fontWeight: "bold" },
-  postCard: { marginBottom: 10 },
-  postText: { fontSize: 16 },
-  postImage: { width: "100%", height: 200, marginTop: 10 },
-  noPostsText: { fontSize: 16, color: "#888", textAlign: "center" },
-  errorContainer: { marginHorizontal: 10, marginTop: 10 },
-  errorText: { color: "red", textAlign: "center" },
-});
+  postAuthorName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#555",
+    marginLeft:10,
+    marginBottom: 4, 
+  },
+  postTime: {
+    fontSize: 12,
+    marginLeft:10,
+    color: "#888",
+  },
+  
+  
+  //Setting _ UserProfile
+  settingsIcon: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
+  drawerSection: {
+    right:0,
+    backgroundColor: "#fff",
+    marginTop: 55,
+    position: "absolute",
+    width: 250,
+    borderRadius: 10
+  },
+  drawerItem: {
+    fontSize: 16,
+    color: "#333",
+  },
+//Ket Thuc
 
+
+formContainer: {
+  width: "90%",
+  marginTop: 20,
+},
+inputGroup: {
+  marginBottom: 10,
+},
+inputLabel: {
+  fontSize: 14,
+  fontWeight: "bold",
+  marginBottom: 5,
+  color: "#555",
+},
+input: {
+  backgroundColor: "#fff",
+  borderWidth: 1,
+  borderColor: "#ddd",
+  padding: 10,
+  borderRadius: 10,
+},
+saveButton: {
+  marginTop: 20,
+  backgroundColor: "#000000",
+  borderRadius: 10,
+  paddingVertical: 8,
+},
+changeCoverText: {
+  fontSize: 12,
+  fontWeight: "bold",
+  color: "#555",
+},
+changeCoverButton: {
+  position: "absolute",
+  bottom: 10,
+  right: 10,
+  backgroundColor: "#ffffffcc",
+  padding: 8,
+  borderRadius: 10,
+},
+changAVtIcon: {
+  color: "#fff",
+  fontSize: 18,
+  fontWeight: "bold",
+},
+avatarWrapper: {
+  position: "absolute",
+  bottom: 0,
+  right: 0,
+  backgroundColor: "#000000",
+  width: 30,
+  height: 30,
+  borderRadius: 15,
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+
+//
+containerSC: {
+  flex: 1,
+  backgroundColor: "#fff",
+  padding: 20,
+  justifyContent: "flex-start",
+},
+titleSC: {
+  marginTop: 20,
+  fontSize: 24,
+  fontWeight: "bold",
+  color: "#333",
+  marginBottom: 20,
+},
+formContainerSC: {
+  marginBottom: 20,
+},
+inputLabeSC: {
+  fontSize: 14,
+  marginBottom: 8,
+  fontWeight:"bold",
+},
+inputSC: {
+  height: 45,
+  borderColor: "#ddd",
+  borderWidth: 1,
+  borderRadius: 8,
+  paddingLeft: 10,
+  marginBottom: 15,
+  fontSize: 16,
+},
+buttonSC: {
+  backgroundColor: "#000000",
+  paddingVertical: 15,
+  borderRadius: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+buttonText: {
+  fontSize: 16,
+  color: "#fff",
+  fontWeight: "bold",
+},
+buttonTextSC: {
+  fontSize: 16,
+  color: "#fff",
+  fontWeight: "bold",
+},
+
+
+});
 
 export default ProfileStyles;

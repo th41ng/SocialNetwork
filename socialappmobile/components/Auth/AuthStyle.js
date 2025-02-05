@@ -11,18 +11,14 @@ const AuthStyle = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    marginTop: 16,
+    backgroundColor: "#000000",
+    width:"60%",
   },
-  avatarPicker: {
-    marginBottom: 16,
-    alignItems: "center",
+  buttonContainer: {
+    marginTop:10,
+    alignItems: "center", 
   },
-  avatarPreview: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
+
 });
 
 export default AuthStyle;
