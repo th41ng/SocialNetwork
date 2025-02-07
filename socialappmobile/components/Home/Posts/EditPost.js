@@ -8,7 +8,12 @@ import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
+import he from "he"; 
 
+const decodeHtml = (html) => {
+    const strippedHtml = html.replace(/<[^>]*>/g, ""); 
+    return he.decode(strippedHtml); 
+  };  
 const EditPost = () => {
     const route = useRoute();
     const { post } = route.params;
@@ -136,7 +141,7 @@ const EditPost = () => {
             <ScrollView contentContainerStyle={styles.container}>
                 <TextInput
                     label="Nội dung bài viết"
-                    value={content}
+                    value={decodeHtml(content)}
                     onChangeText={setContent}
                     mode="outlined"
                     multiline
