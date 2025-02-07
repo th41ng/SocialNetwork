@@ -123,15 +123,12 @@ class ProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
 
 
 class SomeOneProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
-
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         user_id = self.request.query_params.get('user_id')
         if user_id is None:
             raise ValidationError("user_id là bắt buộc.")
-
-        # Lấy người dùng
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
@@ -144,14 +141,11 @@ class SomeOneProfileViewset(viewsets.ModelViewSet, generics.RetrieveAPIView):
 
         if user_id is None:
             return Response({"detail": "user_id là bắt buộc."}, status=400)
-
-        # Lấy thông tin người dùng
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
             return Response({"detail": "Người dùng không tồn tại."}, status=404)
 
-        # Danh sách bài viết
         posts = Post.objects.filter(user=user).order_by('-created_date')
 
         #  thông tin người dùng và bài viết

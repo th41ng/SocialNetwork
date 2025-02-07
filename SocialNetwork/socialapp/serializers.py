@@ -142,13 +142,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         role = validated_data.get('role', None)
-        # Hash mật khẩu và tạo người dùng
+        # Hash mật khẩu
         user = User.objects.create_user(**validated_data)
         if role:
             user.role = role
         # role 'Giảng viên'
         if user.role and user.role.name == 'Giảng viên':
-            user.set_password('ou@123')  # Mật khẩu mặc định
+            user.set_password('ou@123')
             user.password_reset_deadline = user.date_joined + timedelta(days=1)  # MK hết hạn sau 24h
             # Gửi email yêu cầu thay đổi mật khẩu
             subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
@@ -253,10 +253,6 @@ class AnswerSerializer(serializers.Serializer):
             raise serializers.ValidationError("Câu hỏi tự luận cần phải có câu trả lời.")
         if question.question_type == 'multiple_choice' and option is None:
             raise serializers.ValidationError("Câu hỏi trắc nghiệm cần phải chọn một đáp án.")
-
-        # # Kiểm tra xem lựa chọn có hợp lệ cho câu hỏi không
-        # if option and option.question != question:
-        #     raise serializers.ValidationError("Lựa chọn này không thuộc về câu hỏi.")
 
         return data
 

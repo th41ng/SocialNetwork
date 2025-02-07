@@ -1,11 +1,5 @@
 import React, { useCallback, useState, useEffect } from "react";
-import {
-  Text,
-  View,
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-} from "react-native";
+import {Text,View,ActivityIndicator,FlatList,RefreshControl,} from "react-native";
 import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native";
 import Navbar from "../Navbar";
 import SurveyItem from "./SurveyItem";

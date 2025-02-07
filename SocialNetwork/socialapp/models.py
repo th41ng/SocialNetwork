@@ -177,33 +177,7 @@ class Notification(BaseModel):
     def __str__(self):
         return self.title
 
-    def send_notification_email(self):
-        """
-        Gửi email cho người nhận thông báo.
-        """
-        if self.recipient_user:
-            # Gửi email đến cá nhân
-            send_mail(
-               "Thư mời tham gia sự kiện: " + str(self.event),
-                self.content,
-                settings.DEFAULT_FROM_EMAIL,
-                [self.recipient_user.email],
-                fail_silently=False,
-            )
-        elif self.recipient_group:
-            group_members = self.recipient_group.members.all()
-            for member in group_members:
-                email = member.user.email
-                if email:
-                    send_mail(
-                        self.title,
-                        self.content,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [email],
-                        fail_silently=False,
-                    )
-                else:
-                    print(f"Không thể gửi email: Thành viên {member.user.username} không có email.")
+
 
 
 class GroupMember(BaseModel):
@@ -211,7 +185,6 @@ class GroupMember(BaseModel):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_admin = models.BooleanField(default=False)
-
 
 
 class Event(BaseModel):

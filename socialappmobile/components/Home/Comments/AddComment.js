@@ -24,10 +24,7 @@ const AddComment = ({ postId, dispatch }) => {
         Alert.alert("Thông báo", "Bạn cần đăng nhập để bình luận!");
         return; 
       }
-
-      // Lấy user id từ context
       const user_id = user.id; 
-
       const data = {
         content: content,
         post: postId,
@@ -35,12 +32,9 @@ const AddComment = ({ postId, dispatch }) => {
       };
 
       const res = await authApis(token).post(endpoints["comments"], data);
-
       if (res.status === 201) {
-       
         setContent("");
 
-       
         dispatch({
           type: "ADD_COMMENT",
           payload: res.data, 

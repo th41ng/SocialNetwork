@@ -1,4 +1,3 @@
-// reducer.js
 export const initialState = {
   data: {
     posts: [],

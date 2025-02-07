@@ -40,8 +40,7 @@ const EditProfile = () => {
 
       const formData = new FormData();
       formData.append("file", `data:image/jpeg;base64,${fileBase64}`);
-      formData.append("upload_preset", "ml_default"); // Upload preset for Cloudinary
-
+      formData.append("upload_preset", "ml_default"); 
       const response = await axios.post(
         "https://api.cloudinary.com/v1_1/ddskv3qix/image/upload",
         formData,

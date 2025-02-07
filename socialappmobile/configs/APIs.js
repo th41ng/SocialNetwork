@@ -1,4 +1,3 @@
-// configs/api.js
 import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

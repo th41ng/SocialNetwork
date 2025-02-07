@@ -1,13 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useContext, useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Text,
-  TouchableOpacity,
-  View,
-  Alert,
-} from "react-native";
+import {KeyboardAvoidingView,Platform,Text,TouchableOpacity,View,Alert,} from "react-native";
 import { Button, TextInput, Switch } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
 import { MyDispatchContext } from "../../configs/UserContext";

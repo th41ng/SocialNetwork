@@ -247,7 +247,6 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
     return (
         <View key={post.id} style={HomeStyles.postContainer}>
             <View style={HomeStyles.postHeader}>
-                {/* Avatar và thông tin người đăng */}
                 <TouchableOpacity
                     onPress={() => {
                         navigation.navigate("SomeOneProfile", { userId: post.user.id });
@@ -272,7 +271,6 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
 
                 </View>
 
-                {/* Nút "more-vert" - chỉ hiển thị cho chủ bài viết */}
                 {post.user?.id === user?.id && (
                     <TouchableOpacity onPress={toggleMenu}>
                         <MaterialIcons name="more-vert" size={24} color="#666" />
@@ -280,14 +278,12 @@ const PostItem = ({ post, dispatch, state, updatedCommentId }) => {
                 )}
             </View>
 
-            {/* Nội dung bài viết (HTML) */}
             <RenderHtml
                 contentWidth={width}
                 source={{ html: post.content }}
                 baseStyle={HomeStyles.postContent}
             />
 
-            {/* Hình ảnh bài viết (nếu có) */}
             {post.image && (
                 <Image
                     source={{

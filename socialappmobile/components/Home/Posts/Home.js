@@ -1,4 +1,3 @@
-// screens/Home/Home.js
 import React, { useCallback, useReducer, useState, useEffect } from "react";
 import { Text, View, ActivityIndicator, FlatList, SafeAreaView } from "react-native";
 

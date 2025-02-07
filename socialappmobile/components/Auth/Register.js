@@ -52,7 +52,7 @@ const Register = () => {
     });
   
     if (!result.canceled && result.assets.length > 0) {
-      setAvatar(result.assets[0]); // Đảm bảo lưu cả object, không chỉ uri
+      setAvatar(result.assets[0]); 
     }
   };
 
@@ -62,7 +62,7 @@ const Register = () => {
         throw new Error("Đường dẫn ảnh không hợp lệ");
       }
   
-      const imageUri = image.uri; // Đảm bảo lấy đúng đường dẫn ảnh
+      const imageUri = image.uri; 
       const fileBase64 = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -77,7 +77,7 @@ const Register = () => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
   
-      return response.data.secure_url; // Trả về URL ảnh đã upload
+      return response.data.secure_url; 
     } catch (error) {
       console.error("Lỗi upload ảnh:", error);
       Alert.alert("Lỗi", "Không thể tải ảnh lên.");
@@ -85,7 +85,6 @@ const Register = () => {
     }
   };
   
-
 
   const register = async () => {
     if (!role) {
@@ -140,7 +139,7 @@ const Register = () => {
       formData.append("phone_number", phoneNumber);
       formData.append("role", role.id);
       formData.append("password", passwordToSend);
-      formData.append("avatar", avatarUrl); // Gửi URL thay vì file ảnh
+      formData.append("avatar", avatarUrl); 
   
       if (role.name === "Sinh viên") {
         formData.append("student_id", studentId);

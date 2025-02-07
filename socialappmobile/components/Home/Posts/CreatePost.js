@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Alert,
-  View,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  Text,
-} from "react-native";
+import {ScrollView,StyleSheet,Alert,View,Image,KeyboardAvoidingView,Platform,TouchableOpacity,Text,} from "react-native";
 import { TextInput, Button, Menu, Divider } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -29,7 +19,6 @@ const CreatePost = () => {
   const navigation = useNavigation();
   const [image, setImage] = useState(null);
 
-  // Lấy danh mục từ API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -52,7 +41,6 @@ const CreatePost = () => {
   const openMenu = () => setVisible(true);
   const closeMenu = () => setVisible(false);
 
-  // Chọn ảnh
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -87,7 +75,6 @@ const CreatePost = () => {
     }
   };
 
-  // Xử lý đăng bài
   const handlePost = async () => {
     try {
       setLoading(true);

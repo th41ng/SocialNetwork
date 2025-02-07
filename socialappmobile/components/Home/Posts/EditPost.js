@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-    ScrollView,
-    StyleSheet,
-    Alert,
-    View,
-    Image,
-    Platform,
-} from "react-native";
+import {ScrollView,StyleSheet,Alert,View,Image,Platform,} from "react-native";
 import { TextInput, Button, Menu, Divider, Text } from "react-native-paper";
 import APIs, { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -64,7 +57,7 @@ const EditPost = () => {
         });
 
         if (!result.canceled) {
-            setImage({ uri: result.assets[0].uri }); // Cập nhật hình ảnh mới
+            setImage({ uri: result.assets[0].uri }); 
         }
     };
 

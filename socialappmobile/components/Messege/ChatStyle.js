@@ -3,8 +3,6 @@ import { StyleSheet } from "react-native";
 const ChatStyle = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: "#f2f2f2",
-    // padding: 10,
     marginTop:20,
   },
   messagesList: {

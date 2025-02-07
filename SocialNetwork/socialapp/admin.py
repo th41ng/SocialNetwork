@@ -117,7 +117,7 @@ class UserAdmin(admin.ModelAdmin):
         """Đặt mk mặc định cho gv và gửi tb"""
         if not change:
             if obj.role and obj.role.name == 'Giảng viên':
-                obj.set_password('ou@123')  # Mật khẩu mặc định cho giảng viên
+                obj.set_password('ou@123')
                 obj.password_reset_deadline = obj.date_joined + timedelta(days=1)
                 # Gửi email yêu cầu thay đổi mật khẩu
                 subject = 'Mật khẩu mặc định và yêu cầu thay đổi'
@@ -272,7 +272,7 @@ class SurveyAdmin(admin.ModelAdmin):
     def statistics_display(self, obj):
         """Hiển thị link đến trang thống kê chi tiết"""
         if obj:
-            url = reverse('admin:survey-statistics', args=[obj.id])  # Dùng 'admin:survey-statistics'
+            url = reverse('admin:survey-statistics', args=[obj.id])
             print(f"Generated URL in statistics_display: {url}")
             return format_html('<a href="{}" target="_blank">📊 Xem thống kê chi tiết</a>', url)
         return "-"
@@ -299,7 +299,7 @@ class SurveyAdmin(admin.ModelAdmin):
                 'question_type': question.question_type,
                 'results': []
             }
-            # Xu ly cau hoi dang Text
+
             if question.question_type == 'text':
                 answers = SurveyAnswer.objects.filter(question=question).order_by('id').values_list('text_answer', flat=True)
 
@@ -312,7 +312,6 @@ class SurveyAdmin(admin.ModelAdmin):
                     question_data['paginator'] = None
                     question_data['page_obj'] = None
 
-            # Xu ly cau hoi dang trac nghiem
             elif question.question_type == 'multiple_choice':
                 choices = SurveyOption.objects.filter(question=question)
                 answer_counts = SurveyAnswer.objects.filter(question=question).values('option__text').annotate(
@@ -390,7 +389,6 @@ class SurveyResponseAdmin(admin.ModelAdmin):
     search_fields = ['survey__title', 'user__username']
     inlines = [SurveyAnswerInline]
 
-    # chỉ hiển thị khảo sát có trạng thái 'active'
     def get_form(self, request, obj=None, change=False, *args, **kwargs):
         form = super().get_form(request, obj, change, *args, **kwargs)
         if not request.user.is_superuser:
@@ -439,7 +437,7 @@ class SurveyAnswerAdmin(admin.ModelAdmin):
 
 class GroupMemberInline(admin.TabularInline):
     model = GroupMember
-    extra = 1  # Số dòng trống để thêm mới
+    extra = 1
     autocomplete_fields = ['user']
 
 
@@ -452,20 +450,18 @@ class GroupAdmin(admin.ModelAdmin):
     ordering = ['-created_date']
     list_per_page = 20
     inlines = [GroupMemberInline]
-    readonly_fields = ['created_by']  # Make 'created_by' readonly
+    readonly_fields = ['created_by']
 
     def save_model(self, request, obj, form, change):
         """
         Set the created_by field to the logged-in user when creating a new Group.
         """
-        if not change:  # Only set created_by on creation, not on edit
+        if not change:
             obj.created_by = request.user
 
-        # If the user is not an admin, raise an error
         if not request.user.is_staff:
             raise PermissionDenied("Only admin can create or edit groups.")
 
-        # Save the model
         super().save_model(request, obj, form, change)
 
 
@@ -490,49 +486,40 @@ class NotificationAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied("Only admin can create or edit notifications.")
 
-        # Lưu đối tượng vào cơ sở dữ liệu
         super().save_model(request, obj, form, change)
 
-        # Gửi email thông báo sau khi lưu
         self.send_notification_email(obj)
 
     def send_notification_email(self, obj):
         """
         Gửi email cho cả cá nhân và nhóm.
         """
-        # Lấy thông tin từ Event (nếu có)
         event_info = ""
         if obj.event:
             event_info = f"\n\nThông tin sự kiện:\nThời gian bắt đầu: {obj.event.start_time}\nThời gian kết thúc: {obj.event.end_time}\n"
 
-        # Làm sạch content (loại bỏ thẻ HTML) & sửa lỗi mã hóa
         clean_content = strip_tags(obj.content)
         clean_content = html.unescape(clean_content)
 
-        # Tạo nội dung email
         email_content = f"{clean_content}{event_info}"
-
-        # Tập hợp danh sách email (tránh trùng lặp)
         email_list = set()
 
-        # Thêm email của cá nhân nếu có
         if obj.recipient_user and obj.recipient_user.email:
             email_list.add(obj.recipient_user.email)
 
-        # Thêm email của thành viên trong nhóm nếu có
         if obj.recipient_group:
             group_members = obj.recipient_group.members.all()
             for member in group_members:
                 if member.user.email:
                     email_list.add(member.user.email)
 
-        # Gửi email đến tất cả các email đã thu thập
+
         if email_list:
             send_mail(
                 f"Thư mời tham gia sự kiện: {obj.event}",
                 email_content,
                 settings.DEFAULT_FROM_EMAIL,
-                list(email_list),  # Chuyển set về list
+                list(email_list),
                 fail_silently=False,
             )
 # --- Quản lý Event ---
@@ -544,20 +531,20 @@ class EventAdmin(admin.ModelAdmin):
     list_filter = ['start_time', 'end_time']
     ordering = ['-start_time']
     list_per_page = 20
-    readonly_fields = ['created_by']  # Make 'created_by' readonly
+    readonly_fields = ['created_by']
 
     def save_model(self, request, obj, form, change):
         """
         Set the created_by field to the logged-in user when creating a new Event.
         """
-        if not change:  # Only set created_by on creation, not on edit
+        if not change:
             obj.created_by = request.user
 
-        # If the user is not an admin, raise an error
+
         if not request.user.is_staff:
             raise PermissionDenied("Only admin can create or edit events.")
 
-        # Save the model
+
         super().save_model(request, obj, form, change)
 
 
@@ -569,7 +556,6 @@ class StatisticAdmin(admin.ModelAdmin):
     list_filter = ['time_period']
     search_fields = ['type']
 
-    # URL custom cho StatisticAdmin
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -614,7 +600,7 @@ class StatisticAdmin(admin.ModelAdmin):
                 {"period": item['year'].strftime('%Y'), "count": item['count']}
                 for item in data
             ]
-        else:  # month
+        else:
             formatted_data = [
                 {"period": item['month'].strftime('%Y-%m'), "count": item['count']}
                 for item in data
@@ -622,7 +608,6 @@ class StatisticAdmin(admin.ModelAdmin):
 
         return {"data": formatted_data}
 
-    # Thay đổi template cho Statistic
     change_list_template = 'admin/statistic_chart.html'
 
     def changelist_view(self, request, extra_context=None):

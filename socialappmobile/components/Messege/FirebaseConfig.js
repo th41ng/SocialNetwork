@@ -2,7 +2,6 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getDatabase } from "firebase/database"; 
 
-// Cấu hình Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyA1DAHUTeHKMqSVBTAFrvDR4fZOtX8cUik",
   authDomain: "socialapp-9bfd7.firebaseapp.com",

@@ -1,14 +1,5 @@
 import React, { useState, useCallback, useContext, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-  TextInput,
-  Animated,
-  Easing,
-} from "react-native";
+import {View,Text,TouchableOpacity,Alert,StyleSheet,TextInput,Animated,Easing,} from "react-native";
 import { Avatar, Menu, Divider, Icon } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useWindowDimensions } from "react-native";

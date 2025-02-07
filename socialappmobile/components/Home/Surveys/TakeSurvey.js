@@ -13,33 +13,17 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { authApis, endpoints } from "../../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/**
- * Component cho phép người dùng làm khảo sát.
- */
 const TakeSurvey = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { surveyId } = route.params;
-
-  // State lưu trữ thông tin khảo sát
   const [survey, setSurvey] = useState(null);
-
-  // State lưu vị trí câu hỏi hiện tại
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-
-  // State lưu câu trả lời
   const [answers, setAnswers] = useState({});
-
-  // State cho trạng thái loading
   const [loading, setLoading] = useState(true);
-
-  // State cho trạng thái submitting
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    /**
-     * Hàm tải thông tin chi tiết khảo sát.
-     */
     const fetchSurvey = async () => {
       try {
         const token = await AsyncStorage.getItem("token");
@@ -58,16 +42,10 @@ const TakeSurvey = () => {
     fetchSurvey();
   }, [surveyId]);
 
-  /**
-   * Hàm xử lý thay đổi câu trả lời.
-   */
   const handleAnswerChange = (questionId, value) => {
     setAnswers({ ...answers, [questionId]: value });
   };
 
-  /**
-   * Hàm kiểm tra câu hỏi hiện tại đã được trả lời hay chưa.
-   */
   const isCurrentQuestionAnswered = () => {
     if (!survey || !survey.questions) {
       return false; // Thêm kiểm tra survey và survey.questions
@@ -79,9 +57,7 @@ const TakeSurvey = () => {
       ? currentAnswer?.trim().length > 0
       : currentAnswer !== undefined;
   };
-  /**
-   * Hàm xử lý chuyển sang câu hỏi tiếp theo hoặc submit khảo sát.
-   */
+
   const handleNextQuestion = () => {
     if (!survey || !survey.questions) {
       return; // Thêm kiểm tra survey và survey.questions
@@ -95,9 +71,7 @@ const TakeSurvey = () => {
     }
   };
 
-  /**
-   * Hàm submit khảo sát.
-   */
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
@@ -105,7 +79,6 @@ const TakeSurvey = () => {
     try {
       const token = await AsyncStorage.getItem("token");
 
-      // Format lại câu trả lời
       const formattedAnswers = Object.entries(answers).map(
         ([questionId, answer]) => {
           const question = survey.questions.find(
