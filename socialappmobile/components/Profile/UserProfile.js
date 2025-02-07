@@ -8,6 +8,7 @@ import { useNavigation } from "@react-navigation/native";
 import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
 import APIs, { authApis, endpoints } from "../../configs/APIs";
+import he from "he"; 
 
 const Profile = () => {
   const user = useContext(MyUserContext);
@@ -25,6 +26,10 @@ const Profile = () => {
     const prefix = "image/upload/";
     return url?.includes(prefix) ? url.replace(prefix, "") : url;
   };
+  const decodeHtml = (html) => {
+    const strippedHtml = html.replace(/<[^>]*>/g, ""); 
+    return he.decode(strippedHtml); 
+  };  
 
   useEffect(() => {
     setAvatar(user.avatar ? formatImageUrl(user.avatar) : null);
@@ -107,7 +112,7 @@ const Profile = () => {
           </View>
         </View>
   
-        {post.content ? <Text style={ProfileStyles.postText}>{post.content}</Text> : null}
+        {post.content ? <Text style={ProfileStyles.postText}>{decodeHtml(post.content)}</Text> : null}
         {post.image ? <Image source={{ uri: formatImageUrl(post.image) }} style={ProfileStyles.postImage} /> : null}
       </Card.Content>
     </Card>
@@ -177,4 +182,4 @@ const Profile = () => {
   );
 };
 
-export default React.memo(Profile);
+export default React.memo(Profile); 

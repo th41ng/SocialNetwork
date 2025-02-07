@@ -6,6 +6,7 @@ import ProfileStyles from "./ProfileStyles";
 import Navbar from "../Home/Navbar";
 import APIs, { endpoints } from "../../configs/APIs";
 import moment from "moment";  
+import he from "he"; 
 
 const Profile = () => {
   const navigation = useNavigation();
@@ -23,6 +24,10 @@ const Profile = () => {
     const prefix = "image/upload/";
     return url?.startsWith(prefix) ? url.replace(prefix, "") : url;
   };
+   const decodeHtml = (html) => {
+      const strippedHtml = html.replace(/<[^>]*>/g, ""); 
+      return he.decode(strippedHtml); 
+    };
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -112,7 +117,7 @@ const Profile = () => {
           </View>
         </View>
        
-        <Text style={ProfileStyles.postText}>{post.content}</Text>
+        <Text style={ProfileStyles.postText}>{decodeHtml(post.content)}</Text>
         {post.image && <Image source={{ uri: formatImageUrl(post.image)  }} style={ProfileStyles.postImage} />}
       </Card.Content>
     </Card>
@@ -146,3 +151,4 @@ const Profile = () => {
 };
 
 export default Profile;
+ 
