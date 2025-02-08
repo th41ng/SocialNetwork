@@ -63,7 +63,6 @@ const ChatStyle = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },

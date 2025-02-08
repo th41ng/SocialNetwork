@@ -63,7 +63,7 @@ const Home = ({ route }) => {
   useFocusEffect(
     useCallback(() => {
       if (state.data.posts.length === 0 || route.params?.refresh) {
-        setIsLoading(true); // Bật skeleton loading
+        setIsLoading(true); 
         loadPosts(endpoints["posts"], route.params?.refresh);
       }
       return () => {

@@ -44,7 +44,7 @@ const AllUserChat = () => {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={ChatStyle.userItem} onPress={() => navigation.navigate("Chats", { userId: item.id })}>
+    <TouchableOpacity style={ChatStyle.userItem} onPress={() => navigation.navigate("Chats", { userId: item.id, username: item.username })}>
       {item.avatar ? (
         <Avatar.Image source={{ uri: formatImageUrl(item.avatar) }} size={55} style={ChatStyle.avatar} />
       ) : (

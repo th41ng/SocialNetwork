@@ -64,8 +64,10 @@ const Chats = ({ navigation, route }) => {
 
   return (
     <View style={ChatStyle.container}>
-      <IconButton icon="arrow-left" size={28} onPress={() => navigation.goBack()} />
-
+      <View style={ChatStyle.header}>
+        <IconButton icon="arrow-left" size={28} onPress={() => navigation.goBack()} />
+        <Text style={ChatStyle.userName}>{username}</Text>
+      </View>
       <FlatList
         data={messages}
         keyExtractor={(item, index) => index.toString()}
